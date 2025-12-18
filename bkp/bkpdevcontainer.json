@@ -1,0 +1,29 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
+{
+	"name": "ROS2Wheele",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+    "mounts": [
+      "source=${localWorkspaceFolder}/src,target=/jazzy/src,type=bind"
+    ],
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	 "forwardPorts": [8080],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "gcc -v",
+
+	// Configure tool-specific properties.
+  "customizations" : {
+    "jetbrains" : {
+      "backend" : "CLion"
+    }
+  },
+  "postCreateCommand": "echo 'Dev container created!'"
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

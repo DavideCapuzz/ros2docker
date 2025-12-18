@@ -1,0 +1,58 @@
+# -------- Base ----------------------------------------------------
+ARG ROS_DISTRO=jazzy
+FROM osrf/ros:${ROS_DISTRO}-desktop-full
+
+SHELL ["/bin/bash", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+# -------- System Packages ----------------------------------------
+RUN apt-get update && apt-get install -y \
+    curl nano evince viewnior filezilla ruby-dev tmux wget \
+    xorg-dev zsh iputils-ping bzip2 file git vim dos2unix sudo \
+    fluxbox xfce4 xvfb x11vnc supervisor net-tools \
+    novnc websockify \
+    && rm -rf /var/lib/apt/lists/*
+
+# -------- noVNC (latest) -----------------------------------------
+RUN rm -rf /usr/share/novnc && \
+    git clone https://github.com/novnc/noVNC.git /usr/share/novnc && \
+    git clone https://github.com/novnc/websockify.git /usr/share/novnc/utils/websockify && \
+    ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
+# -------- User Setup ---------------------------------------------
+ARG USERNAME=ubuntu
+ARG USER_UID=1000
+ARG USER_GID=1000
+
+ENV USER=${USERNAME}
+ENV HOME=/home/${USERNAME}
+ENV ROS2_WS=${HOME}/ros2_ws
+
+RUN groupadd --gid ${USER_GID} ${USERNAME} && \
+    useradd -m -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} ${USERNAME} && \
+    echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
+    chmod 0440 /etc/sudoers.d/${USERNAME}
+
+USER ${USERNAME}
+WORKDIR ${HOME}
+
+# -------- ROS 2 Workspace ----------------------------------------
+RUN mkdir -p ${ROS2_WS}/src && \
+    source /opt/ros/${ROS_DISTRO}/setup.bash && \
+    cd ${ROS2_WS} && colcon build --symlink-install
+
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
+    echo "source ${ROS2_WS}/install/setup.bash" >> ~/.bashrc
+
+# -------- Runtime ------------------------------------------------
+USER root
+
+ENV DISPLAY=:1
+ENV RESOLUTION=1920x1080x24
+
+EXPOSE 6080 5900
+
+COPY supervisord.conf /etc/supervisord.conf
+
+USER ${USERNAME}
+CMD ["supervisord", "-c", "/etc/supervisord.conf", "-n"]
