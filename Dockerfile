@@ -14,25 +14,36 @@
 # https://github.com/AtsushiSaito/docker-ubuntu-sweb
 # and
 # https://github.com/Tiryoh/docker-ros-desktop-vnc
+# and
+# https://github.com/wail-uottawa/docker-ros2-elg5228
 # which are released under the Apache-2.0 license.
 
-# FROM ubuntu:jammy-20240227 as stage-original
 ARG ROS_VERSION=jazzy
 FROM osrf/ros:${ROS_VERSION}-desktop-full AS stage-original
 ENV ROS_DISTRO ${ROS_DISTRO}
-ENV DISPLAY=:1 \
-    XAUTHORITY=/home/ubuntu/.Xauthority \
-    LIBGL_ALWAYS_SOFTWARE=1 \
-    QT_XCB_GL_INTEGRATION=none
 
-LABEL maintainer "Wail Gueaieb"
-MAINTAINER Wail Gueaieb "https://github.com/wail-uottawa/docker-ros2-elg5228"
+LABEL maintainer "Davide Capuzzo"
+MAINTAINER Davide Capuzzo
 
 ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-c"]
 
 ######################################################
+
+#    dos2unix               utility used to convert text files from DOS/Windows line endings (Carriage Return + Line Feed: CR+LF) to Unix line endings (
+#    curl                   command-line tool for transferring data from or to a server using URLs
+#    libglu1-mesa-dev
+#    nano
+#    evince
+#    viewnior
+#    filezilla
+#    ruby-dev
+#    tmux
+#    wget
+#    xorg-dev
+#    zsh
+#    iputils-ping
 
 RUN apt-get update && apt-get install -y \
     dos2unix \
@@ -54,15 +65,23 @@ RUN apt-get update -q && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     apt-get autoclean && \
     apt-get autoremove && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* \
 
+########################################################################################
+# if you need a fully desktop container uncomment the following lines
 # Install Ubuntu Mate desktop
-RUN apt-get update -q && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        ubuntu-mate-desktop && \
-    apt-get autoclean && \
-    apt-get autoremove && \
-    rm -rf /var/lib/apt/lists/*
+#RUN apt-get update -q && \
+#    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+#        ubuntu-mate-desktop && \
+#    apt-get autoclean && \
+#    apt-get autoremove && \
+#    rm -rf /var/lib/apt/lists/*
+
+# Disable auto update and crash report
+#RUN sed -i 's/Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades
+#RUN sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
+########################################################################################
+
 
 # Add Package
 RUN apt-get update && \
@@ -75,20 +94,46 @@ RUN apt-get update && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
+######################################################################################
+# minimal and light weight version of the tools for novnc grapichs
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        x11-xserver-utils \
+        xauth \
+        xfonts-base \
+        mesa-utils \
+        libgl1 \
+        libegl1 \
+        openbox \
+        libgl1-mesa-dri \
+        libxkbcommon-x11-0 \
+        libxcb-xinerama0 \
+        libqt5gui5 \
+        libqt5widgets5 \
+        libqt5core5a \
+        libqt5x11extras5 \
+        dbus-x11 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV DISPLAY=:1
+ENV QT_QPA_PLATFORM=xcb
+ENV QT_X11_NO_MITSHM=1
+ENV LIBGL_ALWAYS_SOFTWARE=1
+
+RUN mkdir -p /home/ubuntu/.vnc && \
+    printf '#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\ndbus-launch --exit-with-session openbox &\n' \
+    > /home/ubuntu/.vnc/xstartup && \
+    chmod +x /home/ubuntu/.vnc/xstartup && \
+    chown -R ubuntu:ubuntu /home/ubuntu/.vnc
+##################################################################################
+
 # noVNC and Websockify
-#RUN git clone https://github.com/AtsushiSaito/noVNC.git -b add_clipboard_support /usr/lib/novnc
-#RUN pip install git https://github.com/novnc/websockify.git
-#RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
 RUN git clone https://github.com/AtsushiSaito/noVNC.git -b add_clipboard_support /usr/lib/novnc
 RUN pip install --break-system-packages git+https://github.com/novnc/websockify.git
 RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
 
 # Set remote resize function enabled by default
 RUN sed -i "s/UI.initSetting('resize', 'off');/UI.initSetting('resize', 'remote');/g" /usr/lib/novnc/app/ui.js
-
-# Disable auto update and crash report
-RUN sed -i 's/Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades
-RUN sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
 
 # Install Firefox
 #RUN DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:mozillateam/ppa -y && \

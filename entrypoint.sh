@@ -60,7 +60,10 @@ cat << EOF > $CONF_PATH
 nodaemon=true
 user=root
 [program:vnc]
-command=gosu '$USER' bash '$VNCRUN_PATH'
+user=ubuntu
+command=/usr/bin/Xtigervnc :1 -geometry 1920x1080 -depth 24 -SecurityTypes None
+environment=HOME="/home/ubuntu",USER="ubuntu",DISPLAY=":1"
+#command=gosu '$USER' bash '$VNCRUN_PATH'
 [program:novnc]
 command=gosu '$USER' bash -c "websockify --web=/usr/lib/novnc 6080 localhost:5901"
 EOF
