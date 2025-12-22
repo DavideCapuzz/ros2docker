@@ -3,6 +3,8 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
+  "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
+
   "remoteUser": "ubuntu",
 
   "customizations": {
@@ -26,6 +28,9 @@
 
   "shutdownAction": "stopCompose",
 
-  "overrideCommand": false
-//  "runServices": ["robot1"]
+  "overrideCommand": false,
+
+  "runServices": ["robot1"],
+
+//  "workspaceMount": "source=${localWorkspaceFolder}/ros2_ws/src,target=/home/ubuntu/ros2_ws/src,type=bind,consistency=cached"
 }

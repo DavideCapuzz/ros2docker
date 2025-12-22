@@ -25,8 +25,13 @@ services:
       PYTHONUNBUFFERED: "1"
 #      SUPERVISORD_CONF: "/home/ubuntu/supervisord.conf" #supervisor generate by the entrypoint
 
+#    volumes:
+#      - .:/home/ubuntu/ros2_ws:cached
     volumes:
-      - .:/home/ubuntu/ros2_ws:cached
+      - ../src:/home/ubuntu/ros2_ws/src
+      - ros2_build:/home/ubuntu/ros2_ws/build
+      - ros2_install:/home/ubuntu/ros2_ws/install
+      - ros2_log:/home/ubuntu/ros2_ws/log
 
     ports:
       - "6080:6080"   # noVNC
@@ -44,3 +49,8 @@ services:
 
     devices:
       - /dev/dri:/dev/dri
+
+volumes:
+  ros2_build:
+  ros2_install:
+  ros2_log:
