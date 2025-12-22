@@ -65,7 +65,7 @@ RUN apt-get update -q && \
     DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     apt-get autoclean && \
     apt-get autoremove && \
-    rm -rf /var/lib/apt/lists/* \
+    rm -rf /var/lib/apt/lists/*
 
 ########################################################################################
 # if you need a fully desktop container uncomment the following lines

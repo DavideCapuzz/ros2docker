@@ -18,7 +18,7 @@
     }
   },
 
-  "forwardPorts": [6080, 5901, 8080],
+  "forwardPorts": [6080, 5901],
 
   "portsAttributes": {
     "6080": { "label": "noVNC Web", "protocol": "http" }
@@ -26,6 +26,6 @@
 
   "shutdownAction": "stopCompose",
 
-  "overrideCommand": false,
-  "runServices": ["robot1"]
+  "overrideCommand": false
+//  "runServices": ["robot1"]
 }
