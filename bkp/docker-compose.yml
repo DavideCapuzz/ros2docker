@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  ros2-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: jazzy
+        USERNAME: ubuntu
+        USER_UID: 1000
+        USER_GID: 1000
+
+    image: ros2-jazzy-clion:latest
+    container_name: ros2-jazzy-dev
+
+    privileged: true
+    network_mode: host
+    ipc: host
+
+    environment:
+      - DISPLAY=:1
+      - ROS_DISTRO=jazzy
+      - ROS_DOMAIN_ID=0
+      - VNC_RESOLUTION=1920x1080
+      - VNC_PASSWORD=vncpassword
+      - DISPLAY_NUM=1
+      - VNC_PORT=5900
+      - NOVNC_PORT=6080
+      - CMAKE_PREFIX_PATH=/opt/ros/jazzy
+      - AMENT_PREFIX_PATH=/opt/ros/jazzy
+      - COLCON_PREFIX_PATH=/opt/ros/jazzy
+
+    volumes:
+      - .:/workspace:cached
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    ports:
+      - "6080:6080"
+      - "5901:5901"
+      - "8080:8080"
+
+    devices:
+      - /dev/dri:/dev/dri
+
+    working_dir: /workspace
+
+    user: ubuntu
+
+    stdin_open: true
+    tty: true
+
+    command: /bin/bash
+
+    cap_add:
+      - SYS_PTRACE
+
+    security_opt:
+      - seccomp:unconfined

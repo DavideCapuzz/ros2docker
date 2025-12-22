@@ -1,35 +1,9 @@
 {
-  "name": "ROS 2 Jazzy with noVNC - CLion",
-  "dockerFile": "Dockerfile",
-  "context": ".",
-
-  "build": {
-    "args": {
-      "ROS_DISTRO": "jazzy",
-      "USERNAME": "ubuntu",
-      "USER_UID": "1000",
-      "USER_GID": "1000"
-    }
-  },
-
-  "containerEnv": {
-    "DISPLAY": ":1",
-    "ROS_DISTRO": "jazzy",
-    "ROS_DOMAIN_ID": "0",
-    "VNC_RESOLUTION": "1920x1080",
-    "VNC_PASSWORD": "vncpassword",
-    "DISPLAY_NUM": "1",
-    "VNC_PORT": "5901",
-    "NOVNC_PORT": "6080",
-    "CMAKE_PREFIX_PATH": "/opt/ros/jazzy",
-    "AMENT_PREFIX_PATH": "/opt/ros/jazzy",
-    "COLCON_PREFIX_PATH": "/opt/ros/jazzy",
-    "PYTHONUNBUFFERED": "1"
-  },
-
-  "remoteUser": "ubuntu",
+  "name": "wheele",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/home/ubuntu/ros2_ws,type=bind,consistency=cached",
+  "remoteUser": "ubuntu",
 
   "customizations": {
     "jetbrains": {
@@ -47,39 +21,11 @@
   "forwardPorts": [6080, 5901, 8080],
 
   "portsAttributes": {
-    "6080": {
-      "label": "noVNC Web Interface",
-      "onAutoForward": "notify",
-      "protocol": "http"
-    },
-    "5901": {
-      "label": "VNC Server",
-      "onAutoForward": "silent"
-    },
-    "8080": {
-      "label": "Application Port",
-      "onAutoForward": "notify"
-    }
+    "6080": { "label": "noVNC Web", "protocol": "http" }
   },
 
-  "runArgs": [
-    "--privileged",
-    "--network=host",
-    "--ipc=host",
-    "--cap-add=SYS_PTRACE",
-    "--security-opt=seccomp=unconfined",
-    "--device=/dev/dri:/dev/dri"
-  ],
+  "shutdownAction": "stopCompose",
 
-  "overrideCommand": true,
-
-  "postCreateCommand": "bash -c 'mkdir -p /home/ubuntu/.vnc && x11vnc -storepasswd vncpassword /home/ubuntu/.vnc/passwd'",
-
-  "shutdownAction": "stopContainer",
-
-  "features": {},
-
-  "remoteEnv": {
-    "SUPERVISORD_CONF": "/home/ubuntu/supervisord.conf"
-  }
+  "overrideCommand": false,
+  "runServices": ["robot1"]
 }

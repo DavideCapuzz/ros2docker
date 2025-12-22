@@ -1,38 +1,43 @@
-# Set the ROS distribution as an argument, defaulting to 'jazzy'
-ARG ROS_DISTRO=jazzy
-ARG USER_PC=docker_ros
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This Dockerfile is based on
+# https://github.com/AtsushiSaito/docker-ubuntu-sweb
+# and
+# https://github.com/Tiryoh/docker-ros-desktop-vnc
+# which are released under the Apache-2.0 license.
 
-# The base image comes from the official ROS repository hosted on Docker Hub
-# You can find available ROS images here: https://hub.docker.com/_/ros/tags
-ARG BASE_IMAGE=osrf/ros:jazzy-desktop-full
-FROM ${BASE_IMAGE}
+# FROM ubuntu:jammy-20240227 as stage-original
+ARG ROS_VERSION=jazzy
+FROM osrf/ros:${ROS_VERSION}-desktop-full AS stage-original
+ENV ROS_DISTRO ${ROS_DISTRO}
+ENV DISPLAY=:1 \
+    XAUTHORITY=/home/ubuntu/.Xauthority \
+    LIBGL_ALWAYS_SOFTWARE=1 \
+    QT_XCB_GL_INTEGRATION=none
 
-# Set the default shell to bash for RUN commands
-# This ensures all RUN commands use bash instead of sh
+LABEL maintainer "Wail Gueaieb"
+MAINTAINER Wail Gueaieb "https://github.com/wail-uottawa/docker-ros2-elg5228"
+
+ARG TARGETPLATFORM
+
 SHELL ["/bin/bash", "-c"]
 
-# Update the system and install essential tools
-# This step upgrades all packages and installs utilities needed for development
+######################################################
 
-# curl A command-line tool for getting or sending data using URL syntax https://curl.se/
-# nano text editor https://www.nano-editor.org/
-# evince document viewer https://wiki.gnome.org/Apps/Evince
-# viewnior image viewr https://siyanpanayotov.com/project/viewnior/
-# filezilla ftp transfer file https://filezilla-project.org/
-# ruby-dev ruby compiler https://www.ruby-lang.org/en/
-# tmux terminal multiplexer https://github.com/tmux/tmux/wiki
-# wget non-interactive command-line utility for downloading files from the internet https://www.gnu.org/software/wget/
-# xorg-dev impelmentation of xwindows system https://packages.debian.org/sid/xorg-dev
-# zsh customizable command-line shell for docker_ros https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH
-# iputils-ping network diagnostic tool https://packages.debian.org/sid/iputils-ping
-# bzip2 used fro zip file
-# file file management
-# git distributed version control software system https://git-scm.com/
-# vim text editor
-# dos2unix for converting line endings
-# VNC and noVNC related packages
 RUN apt-get update && apt-get install -y \
+    dos2unix \
     curl \
+    libglu1-mesa-dev \
     nano \
     evince \
     viewnior \
@@ -42,132 +47,396 @@ RUN apt-get update && apt-get install -y \
     wget \
     xorg-dev \
     zsh \
-    iputils-ping \
-    bzip2 \
-    file \
-    git \
-    vim \
-    dos2unix \
-    sudo && \
-    # Clean up apt lists to reduce image size
+    iputils-ping
+
+# Upgrade OS
+RUN apt-get update -q && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
+    apt-get autoclean && \
+    apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y  \
-    fluxbox \
-    xfce4 \
-    xvfb \
-    x11vnc \
-    supervisor \
-    net-tools \
-    novnc \
-    websockify && \
-     # Clean up apt lists to reduce image size
-     rm -rf /var/lib/apt/lists/*
+# Install Ubuntu Mate desktop
+RUN apt-get update -q && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        ubuntu-mate-desktop && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install VNC and noVNC packages in separate layer
-#RUN apt-get update && apt-get install -y \
-#    tigervnc-standalone-server \
-#    tigervnc-common \
-#    fluxbox \
-#    xterm \
-#    net-tools \
-#    dbus-x11 \
-#    libglx-mesa0 \
-#    libgl1-mesa-dri \
-#    x11-apps && \
-#    # Clean up apt lists to reduce image size
+# Add Package
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        tigervnc-standalone-server tigervnc-common \
+        supervisor wget curl gosu git python3-pip tini \
+        build-essential vim sudo lsb-release locales \
+        bash-completion tzdata terminator && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
+
+# noVNC and Websockify
+#RUN git clone https://github.com/AtsushiSaito/noVNC.git -b add_clipboard_support /usr/lib/novnc
+#RUN pip install git https://github.com/novnc/websockify.git
+#RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
+RUN git clone https://github.com/AtsushiSaito/noVNC.git -b add_clipboard_support /usr/lib/novnc
+RUN pip install --break-system-packages git+https://github.com/novnc/websockify.git
+RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
+
+# Set remote resize function enabled by default
+RUN sed -i "s/UI.initSetting('resize', 'off');/UI.initSetting('resize', 'remote');/g" /usr/lib/novnc/app/ui.js
+
+# Disable auto update and crash report
+RUN sed -i 's/Prompt=.*/Prompt=never/' /etc/update-manager/release-upgrades
+RUN sed -i 's/enabled=1/enabled=0/g' /etc/default/apport
+
+# Install Firefox
+#RUN DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:mozillateam/ppa -y && \
+#    echo 'Package: *' > /etc/apt/preferences.d/mozilla-firefox && \
+#    echo 'Pin: release o=LP-PPA-mozillateam' >> /etc/apt/preferences.d/mozilla-firefox && \
+#    echo 'Pin-Priority: 1001' >> /etc/apt/preferences.d/mozilla-firefox && \
+#    apt-get update -q && \
+#    apt-get install -y \
+#    firefox && \
+#    apt-get autoclean && \
+#    apt-get autoremove && \
 #    rm -rf /var/lib/apt/lists/*
 
-# Install noVNC
-#RUN git clone https://github.com/novnc/noVNC.git /opt/noVNC && \
-#    git clone https://github.com/novnc/websockify /opt/noVNC/utils/websockify && \
-#    ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
+# Install VSCodium
+#RUN wget https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg \
+#    -O /usr/share/keyrings/vscodium-archive-keyring.asc && \
+#    echo 'deb [ signed-by=/usr/share/keyrings/vscodium-archive-keyring.asc ] https://paulcarroty.gitlab.io/vscodium-deb-rpm-repo/debs vscodium main' \
+#    | tee /etc/apt/sources.list.d/vscodium.list && \
+#    apt-get update -q && \
+#    apt-get install -y codium && \
+#    apt-get autoclean && \
+#    apt-get autoremove && \
+#    rm -rf /var/lib/apt/lists/*
 
-#RUN apt-get update && apt-get install -y  \
-#    git python3 py3-pip
-RUN rm -rf /usr/share/novnc
-RUN git clone https://github.com/novnc/noVNC.git /usr/share/novnc
-RUN git clone https://github.com/novnc/websockify.git /usr/share/novnc/utils/websockify
-RUN ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
+# A few tools
+RUN apt-get update -q && \
+    apt-get install -y \
+    featherpad \
+    doublecmd-qt
+
+
+#####################################################################
+# Add a few ROS packages
+FROM stage-original AS stage-extra-ros2-packages
+
+
+#
+#RUN apt-get update && apt-get install -y \
+#    ros-$ROS_DISTRO-gazebo-ros \
+#    ros-$ROS_DISTRO-gazebo-ros-pkgs \
+#    ros-$ROS_DISTRO-joint-state-publisher \
+#    ros-$ROS_DISTRO-robot-localization \
+#    ros-$ROS_DISTRO-robot-state-publisher \
+#    ros-$ROS_DISTRO-ros2bag \
+#    ros-$ROS_DISTRO-rosbag2-storage-default-plugins \
+#    ros-$ROS_DISTRO-rqt-tf-tree \
+#    ros-$ROS_DISTRO-rmw-fastrtps-cpp \
+#    ros-$ROS_DISTRO-rmw-cyclonedds-cpp \
+#    ros-$ROS_DISTRO-slam-toolbox \
+#    ros-$ROS_DISTRO-turtlebot3 \
+#    ros-$ROS_DISTRO-turtlebot3-msgs \
+#    ros-$ROS_DISTRO-twist-mux \
+#    ros-$ROS_DISTRO-usb-cam \
+#    ros-$ROS_DISTRO-xacro \
+#    ros-$ROS_DISTRO-hardware-interface \
+#    ros-$ROS_DISTRO-generate-parameter-library \
+#    ros-$ROS_DISTRO-ros2-control-test-assets \
+#    ros-$ROS_DISTRO-controller-manager \
+#    ros-$ROS_DISTRO-control-msgs \
+#    ros-$ROS_DISTRO-angles \
+#    ros-$ROS_DISTRO-ros2-control \
+#    ros-$ROS_DISTRO-realtime-tools \
+#    ros-$ROS_DISTRO-control-toolbox \
+#    ros-$ROS_DISTRO-rqt-robot-steering \
+#    ros-$ROS_DISTRO-moveit \
+#    ros-$ROS_DISTRO-ros2-controllers \
+#    ros-$ROS_DISTRO-joint-state-publisher \
+#    ros-$ROS_DISTRO-joint-state-publisher-gui \
+#    ros-$ROS_DISTRO-ur \
+#    ros-$ROS_DISTRO-turtlebot4-desktop \
+#    ros-$ROS_DISTRO-turtlebot4-simulator \
+#    ros-dev-tools \
+#    python3-vcstool \
+#    python3-rosdep \
+#    python3-colcon-common-extensions \
+#    python3-colcon-clean
+# ros-humble-plotjuggler-ros is temporarily unavailable. Add when available
+# More info at https://github.com/facontidavide/PlotJuggler/issues/1074
+
 
 #####################################################################
 # Setup Workspace
 # https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html
+FROM stage-extra-ros2-packages AS stage-workspace
 
+# ENV ROS_DISTRO humble
 # desktop or ros-base
-ARG USERNAME=ubuntu
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
+ARG INSTALL_PACKAGE=desktop
 
-ENV USER=${USERNAME}
-ENV HOME=/home/${USERNAME}
-ENV ROS2_WS=${HOME}/ros2_ws
+# ARG user=ubuntu
+ENV USER=ubuntu
+ENV HOME=/home/ubuntu
+ENV ROS2_WS=$HOME/ros2_ws
+#WORKDIR $HOME
 
-# Create user with specified UID/GID (or modify existing user)
-RUN if id -u $USERNAME > /dev/null 2>&1; then \
-      echo "User $USERNAME already exists, modifying..."; \
-      usermod -u $USER_UID -d /home/$USERNAME -s /bin/bash $USERNAME; \
-    else \
-      groupadd --gid $USER_GID $USERNAME && \
-      useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME; \
-    fi && \
-    mkdir -p /home/$USERNAME/.config && chown $USER_UID:$USER_GID /home/$USERNAME/.config && \
-    echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
-    chmod 0440 /etc/sudoers.d/$USERNAME
-#RUN groupadd --gid ${USER_GID} ${USERNAME} && \
-#    useradd -m -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} ${USERNAME} && \
-#    echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
-#    chmod 0440 /etc/sudoers.d/${USERNAME}
-# Switch to the new user
-USER $USERNAME
-WORKDIR $HOME
+RUN mkdir -p $ROS2_WS/src && \
+    cd $ROS2_WS && \
+    . /opt/ros/$ROS_DISTRO/setup.sh && \
+    colcon build --symlink-install
 
-# Create and build ROS2 workspace
-RUN mkdir -p ${ROS2_WS}/src && \
-    source /opt/ros/${ROS_DISTRO}/setup.bash && \
-    cd ${ROS2_WS} && colcon build --symlink-install
 
-# Add ROS setup to bashrc
-RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc && \
-    echo "source $ROS2_WS/install/setup.bash" >> ~/.bashrc
+#####################################################################
+# Install Turtlebot3
+# https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/#gazebo-simulation
+#FROM stage-workspace AS stage-turtlebot3
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV TURTLEBOT3_WS=$HOME/turtlebot3_ws
+#
+#RUN apt-get update && apt-get install -y \
+#    ros-$ROS_DISTRO-gazebo-* \
+#    ros-$ROS_DISTRO-cartographer \
+#    ros-$ROS_DISTRO-cartographer-ros \
+#    ros-$ROS_DISTRO-navigation2 \
+#    ros-$ROS_DISTRO-nav2-bringup
+#
+#RUN mkdir -p $TURTLEBOT3_WS/src && \
+#    cd $TURTLEBOT3_WS/src && \
+#    git clone -b humble https://github.com/ROBOTIS-GIT/DynamixelSDK.git && \
+#    git clone -b humble https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git && \
+#    git clone -b humble https://github.com/ROBOTIS-GIT/turtlebot3.git && \
+#    git clone -b humble https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git && \
+#    cd $TURTLEBOT3_WS && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    colcon build --symlink-install
+
+
+#####################################################################
+# Install Turtlebot4
+# https://turtlebot.github.io/turtlebot4-user-manual/software/turtlebot4_simulator.html
+#FROM stage-turtlebot3 AS stage-turtlebot4
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV TURTLEBOT4_WS=$HOME/turtlebot4_ws
+#
+#RUN mkdir -p $TURTLEBOT4_WS/src && \
+#    cd $TURTLEBOT4_WS/src && \
+#    git clone -b humble  https://github.com/turtlebot/turtlebot4_simulator.git && \
+#    cd $TURTLEBOT4_WS && \
+#    rosdep update && rosdep install --from-path src -yi && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    colcon build --symlink-install
+
+
+#####################################################################
+# Install Husarion robots
+#
+# ROSbot 2R and ROSbot 2 PRO: https://github.com/husarion/rosbot_ros
+# ROSbot XL: https://github.com/husarion/rosbot_xl_ros
+# Panther: https://github.com/husarion/panther_ros/tree/ros2
+
+# FROM stage-turtlebot4 AS stage-husarion_rosbotxl
+
+# ENV USER=ubuntu
+# ENV HOME=/home/ubuntu
+# ENV ROSBOTXL_WS=$HOME/rosbotxl_ws
+
+# RUN mkdir -p $ROSBOTXL_WS/src && \
+#     cd $ROSBOTXL_WS && \
+#     git clone https://github.com/husarion/rosbot_xl_ros src/ && \
+#     export HUSARION_ROS_BUILD=simulation && \
+#     . /opt/ros/$ROS_DISTRO/setup.sh && \
+#     vcs import src < src/rosbot_xl/rosbot_xl_hardware.repos && \
+#     vcs import src < src/rosbot_xl/rosbot_xl_simulation.repos && \
+#     cp -r src/ros2_controllers/diff_drive_controller src/ && \
+#     cp -r src/ros2_controllers/imu_sensor_broadcaster src/ && \
+#     rm -rf src/ros2_controllers && \
+#     rosdep update --rosdistro $ROS_DISTRO && \
+#     rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y && \
+#     . /opt/ros/$ROS_DISTRO/setup.sh && \
+#     colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+
+#####################################################################
+# Install Husarion robots (Rosbot 3, Rosbot 3 Pro and Rosbot XL)
+#
+# https://husarion.com/
+# https://github.com/husarion/rosbot_ros
+
+#FROM stage-turtlebot4 AS stage-husarion_rosbot
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV ROSBOT_WS=$HOME/rosbot_ws
+#
+#RUN apt-get update && apt-get install -y \
+#    stm32flash
+#
+#RUN mkdir $ROSBOT_WS && \
+#    cd $ROSBOT_WS && \
+#    git clone -b humble https://github.com/husarion/rosbot_ros.git src/rosbot_ros && \
+#    export HUSARION_ROS_BUILD_TYPE=simulation && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    vcs import src < src/rosbot_ros/rosbot/rosbot_${HUSARION_ROS_BUILD_TYPE}.repos && \
+#    vcs import src < src/rosbot_ros/rosbot/manipulator.repos && \
+#    rosdep update --rosdistro $ROS_DISTRO && \
+#    rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y && \
+#    colcon build --symlink-install --packages-up-to rosbot --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+#    colcon build --symlink-install --packages-up-to rosbot --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+#    colcon build --symlink-install --packages-up-to rosbot --cmake-args -DCMAKE_BUILD_TYPE=Release
+# sometimes colcon build needs to be applied multiple times
+
+#####################################################################
+# Install Universal Robots
+# https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/tree/humble
+# https://docs.ros.org/en/ros2_packages/humble/api/ur_robot_driver/usage.html#usage-with-official-ur-simulator
+#
+# It has already been install above (apt install ros-humble-ur)
+# e.g.: ros2 launch ur_description view_ur.launch.py ur_type:=ur5e
+# e.g.: ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e launch_rviz:=true
+# Allowed ur_type values: ur3, ur3e, ur5, ur5e, ur10, ur10e, ur16e, ur20, ur30
+
+#FROM stage-husarion_rosbot AS stage-ur
+#
+#
+######################################################################
+## Install TIAGo
+##
+## https://pal-robotics.com
+## https://github.com/pal-robotics/tiago_simulation
+## Better work with rmw_cyclonedds_cpp ==> "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+#
+#FROM stage-ur AS stage-tiago
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV TIAGO_WS=$HOME/tiago_ws
+#
+#RUN mkdir -p $TIAGO_WS/src && \
+#    cd $TIAGO_WS && \
+#    vcs import --input https://raw.githubusercontent.com/pal-robotics/tiago_tutorials/humble-devel/tiago_public.repos src && \
+#    rosdep update && \
+#    rosdep install --from-paths src -y --ignore-src && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    colcon build --symlink-install
+
+
+#####################################################################
+# Install Franka
+#
+# https://franka.de
+# https://github.com/frankarobotics/franka_ros2
+# https://github.com/frankarobotics/franka_ros2/blob/humble/franka_gazebo/README.md
+
+#FROM stage-tiago AS stage-franka
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV FRANKA_WS=$HOME/franka_ros2_ws
+#
+#RUN mkdir -p $FRANKA_WS/src && \
+#    cd $FRANKA_WS && \
+#    git clone -b humble https://github.com/frankaemika/franka_ros2.git src && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    vcs import src < src/franka.repos --recursive --skip-existing && \
+#    rosdep install --from-paths src --ignore-src --rosdistro humble -y && \
+#    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+#    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+#    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+#    . $FRANKA_WS/install/setup.bash && \
+#    colcon build --packages-select franka_example_controllers franka_ign_ros2_control && \
+#    colcon build --packages-select franka_example_controllers franka_ign_ros2_control && \
+#    colcon build --packages-select franka_example_controllers franka_ign_ros2_control
+
+
+#####################################################################
+# Install Neobotix
+#
+# https://neobotix-docs.de/ros/
+# https://github.com/neobotix/neo_simulation2
+
+#FROM stage-franka AS stage-neobotix
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV NEOBOTIX_TMP=$HOME/tmp
+#
+#RUN mkdir $NEOBOTIX_TMP && \
+#    cd $NEOBOTIX_TMP && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    git clone --branch jammy https://github.com/neobotix/robot-setup-tool.git && \
+#    cd robot-setup-tool/package-setup && \
+#    ./setup-rox-simulation.sh && \
+#    ./setup-simulation.sh && \
+#    cd $HOME && \
+#    rm -fr $NEOBOTIX_TMP
+#
+## for Moveit2
+#RUN apt-get update && apt-get install -y \
+#    ros-$ROS_DISTRO-ros2-control \
+#    ros-$ROS_DISTRO-ros2-controllers \
+#    # ros-$ROS_DISTRO-rqt_joint_trajectory_controller \
+#    ros-$ROS_DISTRO-moveit-*
+#
+
+#####################################################################
+# Install Doosan Robotics
+#
+# https://www.doosanrobotics.com/en
+# https://github.com/DoosanRobotics/doosan-robot2
+# Gazebo: ros2 launch dsr_gazebo2 dsr_gazebo.launch.py
+
+#FROM stage-neobotix AS stage-doosan
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV DOOSAN_WS=$HOME/doosan_ws
+#
+#RUN apt-get update && apt-get install -y \
+#    libpoco-dev libyaml-cpp-dev wget \
+#    ros-humble-control-msgs ros-humble-realtime-tools ros-humble-xacro \
+#    ros-humble-joint-state-publisher-gui ros-humble-ros2-control \
+#    ros-humble-ros2-controllers ros-humble-gazebo-msgs ros-humble-moveit-msgs \
+#    dbus-x11 ros-humble-moveit-configs-utils ros-humble-moveit-ros-move-group \
+#    ros-humble-gazebo-ros-pkgs ros-humble-ros-gz-sim ros-humble-ign-ros2-control
+#
+#RUN apt-get update && apt-get install -y \
+#    libignition-gazebo6-dev ros-humble-gazebo-ros-pkgs ros-humble-ros-gz-sim ros-humble-ros-gz
+#
+#RUN mkdir -p $DOOSAN_WS/src && \
+#    cd $DOOSAN_WS/src && \
+#    git clone -b humble https://github.com/doosan-robotics/doosan-robot2.git && \
+#    cd $DOOSAN_WS && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    rosdep install -r --from-paths . --ignore-src --rosdistro $ROS_DISTRO -y && \
+#    colcon build && colcon build && colcon build
+
 
 #####################################################################
 # Finalization
 
-# Switch back to root for cleanup and entrypoint setup
-USER root
+#FROM stage-doosan AS stage-finalization
 
-# Copy and setup entrypoint script
-#COPY entrypoint.sh /entrypoint.sh
-RUN #chmod +x /entrypoint.sh && dos2unix /entrypoint.sh
+RUN apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
 
-# Expose ports for noVNC and VNC
-#EXPOSE 8080 5900 6080
+# Enable apt-get completion after running `apt-get update` in the container
+RUN rm /etc/apt/apt.conf.d/docker-clean
 
-# Create VNC password directory
-#RUN mkdir -p /home/$USERNAME/.vnc && chown -R $USERNAME:$USERNAME /home/$USERNAME/.vnc
 
-ENV DISPLAY=:1
-ENV RESOLUTION=1920x1080x24
+COPY ./entrypoint.sh /
+RUN chmod +x entrypoint.sh
+RUN dos2unix /entrypoint.sh
+ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
 
-EXPOSE 6080 5900
-# Set vnc password
-#ARG VNC_PASS=dummypass
-#
-## Create vnc password file
-#RUN mkdir -p /root/.vnc && \
-#    x11vnc -storepasswd "$VNC_PASS" /root/.vnc/passwd
-ARG VNC_PASS=ros
-ENV VNC_PASS=${VNC_PASS}
-
-RUN mkdir -p /home/${USERNAME}/.vnc && \
-    x11vnc -storepasswd "${VNC_PASS}" /home/${USERNAME}/.vnc/passwd && \
-    chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.vnc
-COPY supervisord.conf /etc/supervisord.conf
-USER $USERNAME
-CMD ["supervisord", "-c", "/etc/supervisord.conf", "-n"]
-
-# Switch back to user for runtime
-#USER $USERNAME
-
-#ENTRYPOINT ["/entrypoint.sh"]
+ENV USER ubuntu
+ENV PASSWD ubuntu
