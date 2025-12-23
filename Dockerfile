@@ -170,7 +170,51 @@ RUN apt-get update -q && \
 # Add a few ROS packages
 FROM stage-original AS stage-extra-ros2-packages
 
+RUN apt-get update && apt-get install -y \
+    ros-$ROS_DISTRO-can-msgs \
+    ros-$ROS_DISTRO-bondcpp \
+    ros-$ROS_DISTRO-rosbag2-storage-mcap \
+    nlohmann-json3-dev \
+    libsuitesparse-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y \
+    python3-jinja2 \
+    python3-typeguard \
+    && rm -rf /var/lib/apt/lists/*
+
+#####
+# Install ceres solver for slam toolbox
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    libatlas-base-dev \
+    libeigen3-dev \
+    libsuitesparse-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+RUN git clone https://github.com/ceres-solver/ceres-solver.git && \
+    cd ceres-solver && \
+    git checkout 2.2.0
+
+RUN mkdir -p /opt/ceres-build && \
+    cd /opt/ceres-build && \
+    cmake ../ceres-solver \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_TESTING=OFF \
+      -DBUILD_EXAMPLES=OFF \
+      -DSUITESPARSE=ON \
+      -DMINIGLOG=OFF \
+      -DGFLAGS=ON && \
+    make -j$(nproc) && \
+    make install
+
+WORKDIR /
 #
 #RUN apt-get update && apt-get install -y \
 #    ros-$ROS_DISTRO-gazebo-ros \

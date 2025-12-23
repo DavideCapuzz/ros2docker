@@ -4,7 +4,11 @@
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
-
+//  "workspaceMount": "source=${localWorkspaceFolder}/launch,target=/home/ubuntu/ros2_ws/launch,type=bind",
+//  "workspaceMount": [
+//    "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
+//    "source=${localWorkspaceFolder}/launch,target=/home/ubuntu/ros2_ws/launch,type=bind"
+//  ],
   "remoteUser": "ubuntu",
 
   "customizations": {
