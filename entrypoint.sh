@@ -21,6 +21,11 @@ fi
 # VNC password
 VNC_PASSWORD=${PASSWORD:-ubuntu}
 
+# Fix XDG_RUNTIME_DIR ownership
+mkdir -p /tmp/runtime-ubuntu
+chown $USER:$USER /tmp/runtime-ubuntu
+chmod 700 /tmp/runtime-ubuntu
+
 mkdir -p $HOME/.vnc
 echo $VNC_PASSWORD | vncpasswd -f > $HOME/.vnc/passwd
 chmod 600 $HOME/.vnc/passwd
@@ -70,6 +75,7 @@ EOF
 
 # colcon
 BASHRC_PATH=$HOME/.bashrc
+grep -F "source /usr/share/gazebo/setup.sh" $BASHRC_PATH || echo "source /usr/share/gazebo/setup.sh" >> $BASHRC_PATH
 grep -F "source /opt/ros/$ROS_DISTRO/setup.bash" $BASHRC_PATH || echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> $BASHRC_PATH
 grep -F "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" $BASHRC_PATH || echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> $BASHRC_PATH
 #
@@ -95,6 +101,14 @@ echo '### Aliases' >> $BASHRC_PATH
 echo 'alias rosdi="rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y"' >> $BASHRC_PATH
 echo 'alias cbuild="colcon build --symlink-install"' >> $BASHRC_PATH
 #
+
+# After the existing aliases section, add:
+echo '### Gazebo fixes' >> $BASHRC_PATH
+echo 'export LIBGL_ALWAYS_SOFTWARE=1' >> $BASHRC_PATH
+echo 'export MESA_GL_VERSION_OVERRIDE=3.3' >> $BASHRC_PATH
+echo 'export XDG_RUNTIME_DIR=/tmp/runtime-ubuntu' >> $BASHRC_PATH
+echo 'export GZ_SIM_RENDER_ENGINE=ogre' >> $BASHRC_PATH
+echo 'alias gzsim="gz sim --render-engine ogre"' >> $BASHRC_PATH
 ####################################################################
 #
 chown $USER:$USER $BASHRC_PATH
@@ -103,6 +117,7 @@ chown $USER:$USER $BASHRC_PATH
 mkdir -p $HOME/.ros
 cp -r /root/.ros/rosdep $HOME/.ros/rosdep
 chown -R $USER:$USER $HOME/.ros
+
 
 # Add terminator shortcut
 #mkdir -p $HOME/Desktop

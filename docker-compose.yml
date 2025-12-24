@@ -15,18 +15,18 @@ services:
       ROS_DISTRO: "jazzy"
       ROS_DOMAIN_ID: "0"
       VNC_RESOLUTION: "1920x1080"
-#      VNC_PASSWORD: "ros" # not needed because currently we are running without password
       DISPLAY_NUM: "1"
       VNC_PORT: "5901"
       NOVNC_PORT: "6080"
-#      CMAKE_PREFIX_PATH: "/opt/ros/jazzy"
-#      AMENT_PREFIX_PATH: "/opt/ros/jazzy"
-#      COLCON_PREFIX_PATH: "/opt/ros/jazzy"
       PYTHONUNBUFFERED: "1"
-#      SUPERVISORD_CONF: "/home/ubuntu/supervisord.conf" #supervisor generate by the entrypoint
+      # Graphics fixes for Gazebo
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "3.3"
+      MESA_GLSL_VERSION_OVERRIDE: "330"
+      QT_X11_NO_MITSHM: "1"
+      XDG_RUNTIME_DIR: "/tmp/runtime-ubuntu"
+      GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
 
-#    volumes:
-#      - .:/home/ubuntu/ros2_ws:cached
     volumes:
       - ../src:/home/ubuntu/ros2_ws/src
       - ../launch:/home/ubuntu/ros2_ws/launch
@@ -37,10 +37,6 @@ services:
     ports:
       - "6080:6080"   # noVNC
       - "5901:5901"   # VNC
-#      - "8080:8080"   # App
-
-#    privileged: true
-#    ipc: host # maybe need to add back
 
     cap_add:
       - SYS_PTRACE
