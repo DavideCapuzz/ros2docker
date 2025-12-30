@@ -28,9 +28,6 @@ ENV ROS_DISTRO=${ROS_DISTRO}
 # Setup the the variable to run pakages without interactive way
 ENV DEBIAN_FRONTEND=noninteractive
 
-# setup the correct platform
-ARG TARGETPLATFORM
-
 # setup the shell to use bash instead of sh
 SHELL ["/bin/bash", "-c"]
 
@@ -67,10 +64,6 @@ SHELL ["/bin/bash", "-c"]
 #    tzdata                 collection of data defining the world's time zones
 #    && rm -rf /var/lib/apt/lists/*     clean up evrything
 
-#    ruby-dev
-#    xorg-dev
-
-
 RUN apt-get update && apt-get install -y \
 ## Build tools
     build-essential \
@@ -101,9 +94,6 @@ RUN apt-get update && apt-get install -y \
     tzdata \
 ## Clean up
     && rm -rf /var/lib/apt/lists/*
-#   TBD if neccessary
-#    ruby-dev \
-#    xorg-dev \
 
 # Upgrade OS
 RUN apt-get update -q && \
@@ -115,7 +105,7 @@ RUN apt-get update -q && \
 # ============================================================================
 # STAGE 2: Graphics & VNC Setup (for GUI containers)
 # ============================================================================
-FROM stage-base AS stage-graphics-ros
+FROM stage-base AS stage-graphics
 ########################################################################################
 # if you need a fully desktop container uncomment the following lines
 # Install Ubuntu Mate desktop
@@ -166,14 +156,6 @@ RUN apt-get update && \
     libqt5x11extras5 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 ######################################################################################
-
-# Tells GUI applications which X server display to use.
-# Linux GUI apps don’t draw directly to the screen; they send graphics to an X server.
-# Inside Docker, there is no display by default.
-# :1 usually means: You are using a virtual display (like Xvfb) Or forwarding to a host display
-# Without it GUI apps fail with errors like: Cannot connect to display
-ENV DISPLAY=:1
-
 # Forces Qt to use the X11 (xcb) backend.
 # Qt supports multiple backends (Wayland, X11, offscreen). In containers, Qt sometimes guesses wrong and tries Wayland → crashes.
 # xcb = stable X11 backend.
@@ -189,15 +171,6 @@ ENV QT_X11_NO_MITSHM=1
 # Containers often don’t have access to host GPU drivers.
 # Prevents OpenGL from trying (and failing) to use hardware acceleration.
 ENV LIBGL_ALWAYS_SOFTWARE=1
-
-#######
-# Needed for nvidia driver
-# Tell Mesa (OpenGL software renderer):
-# -  Pretend OpenGL version is 3.3
-# -  Pretend GLSL version is 330
-# speficy minimun opengl version
-ENV MESA_GL_VERSION_OVERRIDE=3.3
-ENV MESA_GLSL_VERSION_OVERRIDE=330
 
 # Ensure the XDG_RUNTIME_DIR is created with proper permissions
 # This runtime directory is required by many GUI frameworks like Qt, PulseAudio, Wayland, etc. expect this directory.
@@ -232,7 +205,7 @@ RUN mkdir -p /home/ubuntu/.vnc && \
     '#!/bin/sh\n \
     unset SESSION_MANAGER\n \
     unset DBUS_SESSION_BUS_ADDRESS\n \
-    dbus-launch --exit-with-session openbox &\n' \
+    exec dbus-launch --exit-with-session openbox\n' \
     > /home/ubuntu/.vnc/xstartup && \
     chmod +x /home/ubuntu/.vnc/xstartup && \
     chown -R ubuntu:ubuntu /home/ubuntu/.vnc
@@ -247,63 +220,71 @@ RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
 # Set remote resize function enabled by default
 RUN sed -i "s/UI.initSetting('resize', 'off');/UI.initSetting('resize', 'remote');/g" /usr/lib/novnc/app/ui.js
 
-# A few tools
-#RUN apt-get update -q && \
-#    apt-get install -y \
-#    featherpad \
-#    doublecmd-qt
-
 #####################################################################
 # Add a few ROS packages
-FROM stage-graphics-ros AS stage-extra-ros2-packages
+FROM stage-graphics AS stage-ros2-core
 
 RUN apt-get update && apt-get install -y \
+    ## Build and dev tools TBD
+#    python3-colcon-common-extensions \
+#    python3-colcon-clean \
+#    python3-rosdep \
+#    python3-vcstool \
+#    ros-dev-tools \
+    ## Common ROS2 packages
     ros-$ROS_DISTRO-can-msgs \
     ros-$ROS_DISTRO-bondcpp \
     ros-$ROS_DISTRO-rosbag2-storage-mcap \
+    ## Communication middleware
+#    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+    ## Development libraries
     nlohmann-json3-dev \
-    libsuitesparse-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install -y \
+#    libsuitesparse-dev \
+    python3-jinja2 \
+    python3-typeguard \
+    ## Gazebo bridge
     ros-$ROS_DISTRO-ros-gz-sim \
     ros-$ROS_DISTRO-ros-gz-bridge \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y \
-    python3-jinja2 \
-    python3-typeguard \
-    && rm -rf /var/lib/apt/lists/*
+# Initialize rosdep
+RUN rosdep init || true && \
+    rosdep update --rosdistro ${ROS_DISTRO}
 
 #####
+
+
 # Install ceres solver for slam toolbox
-RUN apt-get update && apt-get install -y \
-    libgoogle-glog-dev \
-    libgflags-dev \
-    libatlas-base-dev \
-    libeigen3-dev \
-    libsuitesparse-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /opt
-RUN git clone https://github.com/ceres-solver/ceres-solver.git && \
-    cd ceres-solver && \
-    git checkout 2.2.0
-
-RUN mkdir -p /opt/ceres-build && \
-    cd /opt/ceres-build && \
-    cmake ../ceres-solver \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_TESTING=OFF \
-      -DBUILD_EXAMPLES=OFF \
-      -DSUITESPARSE=ON \
-      -DMINIGLOG=OFF \
-      -DGFLAGS=ON && \
-    make -j$(nproc) && \
-    make install
-
-WORKDIR /
-
+#RUN apt-get update && apt-get install -y \
+#    libgoogle-glog-dev \
+#    libgflags-dev \
+#    libatlas-base-dev \
+#    libeigen3-dev \
+#    libsuitesparse-dev \
+#    && rm -rf /var/lib/apt/lists/*
+#
+#WORKDIR /opt
+#RUN git clone https://github.com/ceres-solver/ceres-solver.git && \
+#    cd ceres-solver && \
+#    git checkout 2.2.0
+#
+#RUN mkdir -p /opt/ceres-build && \
+#    cd /opt/ceres-build && \
+#    cmake ../ceres-solver \
+#      -DCMAKE_BUILD_TYPE=Release \
+#      -DBUILD_TESTING=OFF \
+#      -DBUILD_EXAMPLES=OFF \
+#      -DSUITESPARSE=ON \
+#      -DMINIGLOG=OFF \
+#      -DGFLAGS=ON && \
+#    make -j$(nproc) && \
+#    make install
+#
+#WORKDIR /
+FROM stage-ros2-core AS stage-extra-ros2-packages
+COPY install_robot_deps.sh /tmp/install_robot_deps.sh
+RUN chmod +x /tmp/install_robot_deps.sh && \
+      /tmp/install_robot_deps.sh custom
 #####################################################################
 # Setup Workspace
 # https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html

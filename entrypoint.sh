@@ -75,7 +75,7 @@ EOF
 
 # colcon
 BASHRC_PATH=$HOME/.bashrc
-grep -F "source /usr/share/gazebo/setup.sh" $BASHRC_PATH || echo "source /usr/share/gazebo/setup.sh" >> $BASHRC_PATH
+#grep -F "source /usr/share/gazebo/setup.sh" $BASHRC_PATH || echo "source /usr/share/gazebo/setup.sh" >> $BASHRC_PATH
 grep -F "source /opt/ros/$ROS_DISTRO/setup.bash" $BASHRC_PATH || echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> $BASHRC_PATH
 grep -F "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" $BASHRC_PATH || echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> $BASHRC_PATH
 #
@@ -112,10 +112,5 @@ chown -R $USER:$USER $HOME/Desktop
 # clearup
 PASSWORD=
 VNC_PASSWORD=
-
-echo "============================================================================================"
-echo "NOTE: --security-opt seccomp=unconfined flag is required to launch Ubuntu Jammy based image."
-echo -e 'See \e]8;;https://github.com/Tiryoh/docker-ros2-desktop-vnc/pull/56\e\\https://github.com/Tiryoh/docker-ros2-desktop-vnc/pull/56\e]8;;\e\\'
-echo "============================================================================================"
 
 exec /bin/tini -- supervisord -n -c /etc/supervisor/supervisord.conf

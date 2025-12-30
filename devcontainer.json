@@ -1,14 +1,9 @@
 {
-  "name": "wheele",
+  "name": "ros2setup",
   "dockerComposeFile": "docker-compose.yml",
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
-//  "workspaceMount": "source=${localWorkspaceFolder}/launch,target=/home/ubuntu/ros2_ws/launch,type=bind",
-//  "workspaceMount": [
-//    "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
-//    "source=${localWorkspaceFolder}/launch,target=/home/ubuntu/ros2_ws/launch,type=bind"
-//  ],
   "remoteUser": "ubuntu",
 
   "customizations": {
@@ -20,6 +15,18 @@
         "org.jetbrains.plugins.terminal",
         "com.jetbrains.plugins.cmake",
         "Python"
+      ]
+    },
+    "vscode": { // not fully tested yet
+      "settings": {
+        // Enable Ptrace for effective debugging
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "C_Cpp.default.intelliSenseMode": "gcc-x64"
+      },
+      "extensions": [
+        "ms-vscode.cpptools", // The official C/C++ extension
+        "ms-vscode.cmake-tools", // CMake integration
+        "llvm-vscode-extensions.vscode-clangd" // Clangd support
       ]
     }
   },
@@ -35,6 +42,4 @@
   "overrideCommand": false,
 
   "runServices": ["robot1"],
-
-//  "workspaceMount": "source=${localWorkspaceFolder}/ros2_ws/src,target=/home/ubuntu/ros2_ws/src,type=bind,consistency=cached"
 }
