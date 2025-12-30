@@ -1,6 +1,7 @@
 {
   "name": "ros2setup",
   "dockerComposeFile": "docker-compose.yml",
+  "initializeCommand": "cd ${localWorkspaceFolder}/.devcontainer/ros2docker/ && bash copy_robot_setup.sh",
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",

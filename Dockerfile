@@ -252,37 +252,10 @@ RUN rosdep init || true && \
     rosdep update --rosdistro ${ROS_DISTRO}
 
 #####
-
-
-# Install ceres solver for slam toolbox
-#RUN apt-get update && apt-get install -y \
-#    libgoogle-glog-dev \
-#    libgflags-dev \
-#    libatlas-base-dev \
-#    libeigen3-dev \
-#    libsuitesparse-dev \
-#    && rm -rf /var/lib/apt/lists/*
-#
-#WORKDIR /opt
-#RUN git clone https://github.com/ceres-solver/ceres-solver.git && \
-#    cd ceres-solver && \
-#    git checkout 2.2.0
-#
-#RUN mkdir -p /opt/ceres-build && \
-#    cd /opt/ceres-build && \
-#    cmake ../ceres-solver \
-#      -DCMAKE_BUILD_TYPE=Release \
-#      -DBUILD_TESTING=OFF \
-#      -DBUILD_EXAMPLES=OFF \
-#      -DSUITESPARSE=ON \
-#      -DMINIGLOG=OFF \
-#      -DGFLAGS=ON && \
-#    make -j$(nproc) && \
-#    make install
-#
-#WORKDIR /
 FROM stage-ros2-core AS stage-extra-ros2-packages
-COPY install_robot_deps.sh /tmp/install_robot_deps.sh
+
+COPY ./tmp/install_robot_deps.sh /tmp/install_robot_deps.sh
+
 RUN chmod +x /tmp/install_robot_deps.sh && \
       /tmp/install_robot_deps.sh custom
 #####################################################################

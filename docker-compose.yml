@@ -28,7 +28,7 @@ services:
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
 
     volumes:
-      - ../src:/home/ubuntu/ros2_ws/src
+      - ../../src:/home/ubuntu/ros2_ws/src
       - ../launch:/home/ubuntu/ros2_ws/launch
       - ros2_build:/home/ubuntu/ros2_ws/build
       - ros2_install:/home/ubuntu/ros2_ws/install
