@@ -251,7 +251,6 @@ RUN apt-get update && apt-get install -y \
 RUN rosdep init || true && \
     rosdep update --rosdistro ${ROS_DISTRO}
 
-#####
 FROM stage-ros2-core AS stage-extra-ros2-packages
 
 COPY ./tmp/install_robot_deps.sh /tmp/install_robot_deps.sh

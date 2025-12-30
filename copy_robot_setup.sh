@@ -2,7 +2,6 @@
 
 # Check if the destination directory exists, create it if it doesn't
 mkdir -p ./tmp
-echo ls
 # Check if the file exists in the parent directory
 if [ -f ../install_robot_deps.sh ]; then
   # Copy the file from the parent directory to ./tmp
