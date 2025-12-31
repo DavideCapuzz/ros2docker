@@ -29,7 +29,7 @@ services:
 
     volumes:
       - ../../src:/home/ubuntu/ros2_ws/src
-      - ../launch:/home/ubuntu/ros2_ws/launch
+      - ../../launch:/home/ubuntu/ros2_ws/launch
       - ros2_build:/home/ubuntu/ros2_ws/build
       - ros2_install:/home/ubuntu/ros2_ws/install
       - ros2_log:/home/ubuntu/ros2_ws/log
