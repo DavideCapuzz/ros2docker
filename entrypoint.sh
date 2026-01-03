@@ -96,6 +96,7 @@ echo 'export LIBGL_ALWAYS_SOFTWARE=1' >> $BASHRC_PATH
 echo 'export MESA_GL_VERSION_OVERRIDE=3.3' >> $BASHRC_PATH
 echo 'export XDG_RUNTIME_DIR=/tmp/runtime-ubuntu' >> $BASHRC_PATH
 echo 'export GZ_SIM_RENDER_ENGINE=ogre' >> $BASHRC_PATH
+echo 'export ROBOT_NAME=bot1' >> $BASHRC_PATH
 echo 'alias gzsim="gz sim --render-engine ogre"' >> $BASHRC_PATH
 ####################################################################
 #

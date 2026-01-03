@@ -26,6 +26,7 @@ services:
       QT_X11_NO_MITSHM: "1"
       XDG_RUNTIME_DIR: "/tmp/runtime-ubuntu"
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
+      ROBOT_NAME: bot1
 
     volumes:
       - ../../src:/home/ubuntu/ros2_ws/src
