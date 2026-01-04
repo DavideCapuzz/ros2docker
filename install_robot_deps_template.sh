@@ -116,9 +116,9 @@ install_perception_packages() {
 }
 
 # ============================================================================
-# CUSTOM LIBRARIES (Ceres, etc.)
+# CERES
 # ============================================================================
-install_custom_libraries() {
+install_ceres_libraries() {
     echo ">>> Installing Custom Libraries..."
 
     # Ceres Solver (for SLAM Toolbox)
@@ -156,6 +156,20 @@ install_custom_libraries() {
 }
 
 # ============================================================================
+# CUSTOM LIBRARIES (Ceres, etc.)
+# ============================================================================
+install_custom_libraries() {
+    echo ">>> Installing Custom Libraries..."
+}
+
+# ============================================================================
+# DEFAULT
+# ============================================================================
+install_default_libraries() {
+    echo "not installing anything"
+}
+
+# ============================================================================
 # PROFILE SELECTION
 # ============================================================================
 case "${PROFILE}" in
@@ -188,6 +202,10 @@ case "${PROFILE}" in
 
     custom)
         install_custom_libraries
+        ;;
+
+    default)
+        install_default_libraries
         ;;
 
     *)

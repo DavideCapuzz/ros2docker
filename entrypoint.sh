@@ -1,5 +1,6 @@
 #!/bin/bash
-
+# Robot Container Entrypoint
+# Supports: Multi-robot namespacing, CLion remote dev, Gazebo spawning
 # Create User
 USER=${USER:-root}
 HOME=/root
@@ -18,13 +19,12 @@ if [ "$USER" != "root" ]; then
     [ -d "/dev/snd" ] && chgrp -R adm /dev/snd
 fi
 
-# VNC password
-VNC_PASSWORD=${PASSWORD:-ubuntu}
-
+# VNC Setup
+VNC_PASSWORD=${PASSWORD}
 # Fix XDG_RUNTIME_DIR ownership
-mkdir -p /tmp/runtime-ubuntu
-chown $USER:$USER /tmp/runtime-ubuntu
-chmod 700 /tmp/runtime-ubuntu
+mkdir -p /tmp/runtime-$USER
+chown $USER:$USER /tmp/runtime-$USER
+chmod 700 /tmp/runtime-$USER
 
 mkdir -p $HOME/.vnc
 echo $VNC_PASSWORD | vncpasswd -f > $HOME/.vnc/passwd
@@ -33,7 +33,7 @@ chmod 600 $HOME/.vnc/passwd
 touch $HOME/.Xauthority
 chown $USER:$USER $HOME/.Xauthority
 
-chown -R $USER:$USER $HOME
+# Update noVNC password
 sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/lib/novnc/app/ui.js
 
 # xstartup
@@ -41,15 +41,9 @@ XSTARTUP_PATH=$HOME/.vnc/xstartup
 cat << EOF > $XSTARTUP_PATH
 #!/bin/sh
 unset DBUS_SESSION_BUS_ADDRESS
-mate-session
 EOF
 chown $USER:$USER $XSTARTUP_PATH
 chmod 755 $XSTARTUP_PATH
-
-# vncserver launch
-VNCRUN_PATH=$HOME/.vnc/vnc_run.sh
-cat << EOF > $VNCRUN_PATH
-#!/bin/sh
 
 if [ $(uname -m) = "aarch64" ]; then
     LD_PRELOAD=/lib/aarch64-linux-gnu/libgcc_s.so.1 vncserver :1 -fg -geometry 1920x1080 -depth 24
@@ -64,47 +58,65 @@ cat << EOF > $CONF_PATH
 [supervisord]
 nodaemon=true
 user=root
+
 [program:vnc]
-user=ubuntu
+user=${USER}
 command=/usr/bin/Xtigervnc :1 -geometry 1920x1080 -depth 24 -SecurityTypes None
-environment=HOME="/home/ubuntu",USER="ubuntu",DISPLAY=":1"
-#command=gosu '$USER' bash '$VNCRUN_PATH'
+environment=HOME="${HOME}",USER="${USER}",DISPLAY=":1"
+autorestart=true
+priority=100
+
 [program:novnc]
-command=gosu '$USER' bash -c "websockify --web=/usr/lib/novnc 6080 localhost:5901"
+command=gosu '${USER}' bash -c "websockify --web=/usr/lib/novnc ${NOVNC_PORT} localhost:${VNC_PORT}"
+autorestart=true
+priority=200
 EOF
 
-# colcon
+# Setup bashrc with robot-specific configuration
 BASHRC_PATH=$HOME/.bashrc
-#grep -F "source /usr/share/gazebo/setup.sh" $BASHRC_PATH || echo "source /usr/share/gazebo/setup.sh" >> $BASHRC_PATH
-grep -F "source /opt/ros/$ROS_DISTRO/setup.bash" $BASHRC_PATH || echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> $BASHRC_PATH
-grep -F "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" $BASHRC_PATH || echo "source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" >> $BASHRC_PATH
-#
-####################################################################
-# This part is added by w.g.
-####################################################################
-#
-echo '### Added by w.g.' >> $BASHRC_PATH
-# A few aliases
-echo '### Aliases' >> $BASHRC_PATH
-echo 'alias rosdi="rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y"' >> $BASHRC_PATH
-echo 'alias cbuild="colcon build --symlink-install"' >> $BASHRC_PATH
-#
+cat >> $BASHRC_PATH << 'BASHRC_EOF'
+# ========================================
+# ROS2 Multi-Robot Configuration
+# ========================================
 
-# After the existing aliases section, add:
-echo '### Gazebo fixes' >> $BASHRC_PATH
-echo 'export LIBGL_ALWAYS_SOFTWARE=1' >> $BASHRC_PATH
-echo 'export MESA_GL_VERSION_OVERRIDE=3.3' >> $BASHRC_PATH
-echo 'export XDG_RUNTIME_DIR=/tmp/runtime-ubuntu' >> $BASHRC_PATH
-echo 'export GZ_SIM_RENDER_ENGINE=ogre' >> $BASHRC_PATH
-echo 'export ROBOT_NAME=bot1' >> $BASHRC_PATH
-echo 'alias gzsim="gz sim --render-engine ogre"' >> $BASHRC_PATH
-####################################################################
-#
+# Source ROS2
+source /opt/ros/${ROS_DISTRO}/setup.bash
+
+# Source workspace (if built)
+if [ -f ~/ros2_ws/install/setup.bash ]; then
+    source ~/ros2_ws/install/setup.bash
+fi
+
+# Colcon autocomplete
+source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
+
+# Robot-specific namespace
+export ROBOT_NAME=${ROBOT_NAME}
+export ROBOT_NAMESPACE=${ROBOT_NAMESPACE}
+export ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+
+# Use simulation time if configured
+if [ "${USE_SIM_TIME}" == "true" ]; then
+    export ROS_USE_SIM_TIME=1
+fi
+
+# Graphics fixes
+export LIBGL_ALWAYS_SOFTWARE=1
+export MESA_GL_VERSION_OVERRIDE=3.3
+export XDG_RUNTIME_DIR=/tmp/runtime-${USER}
+
+# @TODO check if necessary
+export GZ_SIM_RENDER_ENGINE=ogre
+
+BASHRC_EOF
+
 chown $USER:$USER $BASHRC_PATH
 
-# Fix rosdep permission
+# Fix rosdep permissions
 mkdir -p $HOME/.ros
-cp -r /root/.ros/rosdep $HOME/.ros/rosdep
+if [ -d /root/.ros/rosdep ]; then
+    cp -r /root/.ros/rosdep $HOME/.ros/rosdep
+fi
 chown -R $USER:$USER $HOME/.ros
 
 #EOF
@@ -114,4 +126,5 @@ chown -R $USER:$USER $HOME/Desktop
 PASSWORD=
 VNC_PASSWORD=
 
+# Start services
 exec /bin/tini -- supervisord -n -c /etc/supervisor/supervisord.conf

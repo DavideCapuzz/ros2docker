@@ -245,7 +245,6 @@ RUN apt-get update && apt-get install -y \
     python3-jinja2 \
     python3-typeguard \
     ## Gazebo bridge
-    ros-$ROS_DISTRO-ros-gz-sim \
     ros-$ROS_DISTRO-ros-gz-bridge \
     && rm -rf /var/lib/apt/lists/*
 
@@ -258,7 +257,7 @@ RUN rosdep init || true && \
 # ============================================================================
 FROM stage-ros2-core AS stage-extra-ros2-packages
 
-ARG INSTALL_PROFILE=default
+ARG INSTALL_PROFILE=custom
 
 COPY ./tmp/install_robot_deps.sh /tmp/install_robot_deps.sh
 
@@ -301,3 +300,42 @@ ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
 
 ENV USER ubuntu
 ENV PASSWD ubuntu
+
+# ============================================================================
+# STAGE 7: Gazebo Container (Separate Stage)
+# ============================================================================
+#FROM stage-graphics AS stage-gazebo
+#
+#RUN apt-get update && apt-get install -y \
+#    ros-$ROS_DISTRO-ros-gz-sim \
+#    ros-$ROS_DISTRO-ros-gz-bridge \
+#    ros-$ROS_DISTRO-ros-gz-interfaces \
+#    && rm -rf /var/lib/apt/lists/*
+#
+## Initialize rosdep
+#RUN rosdep init || true && \
+#    rosdep update --rosdistro ${ROS_DISTRO}
+#
+#ENV USER=ubuntu
+#ENV HOME=/home/ubuntu
+#ENV ROS2_WS=$HOME/ros2_ws
+#
+#RUN mkdir -p $ROS2_WS/src && \
+#    cd $ROS2_WS && \
+#    . /opt/ros/$ROS_DISTRO/setup.sh && \
+#    colcon build --symlink-install
+#
+#RUN apt-get autoremove -y \
+#    && apt-get clean -y \
+#    && rm -rf /var/lib/apt/lists/*
+#
+## Enable apt-get completion after running `apt-get update` in the container
+#RUN rm /etc/apt/apt.conf.d/docker-clean
+#
+#COPY ./entrypoint.sh /
+#RUN chmod +x entrypoint.sh
+#RUN dos2unix /entrypoint.sh
+#ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
+#
+#ENV USER ubuntu
+#ENV PASSWD ubuntu
