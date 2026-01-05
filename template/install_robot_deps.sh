@@ -156,6 +156,24 @@ install_ceres_libraries() {
 }
 
 # ============================================================================
+# Gazebo
+# ============================================================================
+install_gazebo_bridge_libraries() {
+    echo ">>> Installing Custom Libraries..."
+    apt-get update && apt-get install -y \
+            ## Gazebo
+            ros-${ROS_DISTRO}-ros-gz-bridge \
+            && rm -rf /var/lib/apt/lists/*
+}
+
+install_gazebo_libraries() {
+    echo ">>> Installing Custom Libraries..."
+    apt-get update && apt-get install -y \
+            ## Gazebo bridge
+            ros-${ROS_DISTRO}-ros-gz-sim \
+            && rm -rf /var/lib/apt/lists/*
+}
+# ============================================================================
 # CUSTOM LIBRARIES (Ceres, etc.)
 # ============================================================================
 install_custom_libraries() {

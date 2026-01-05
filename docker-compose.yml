@@ -35,14 +35,7 @@ services:
       - "6080:6080"   # noVNC
       - "5901:5901"   # VNC
 
-    cap_add:
-      - SYS_PTRACE
-
-    security_opt:
-      - seccomp=unconfined
-
-    devices:
-      - /dev/dri:/dev/dri
+    command: /tmp/endfunction.sh
 
 volumes:
   ros2_build:

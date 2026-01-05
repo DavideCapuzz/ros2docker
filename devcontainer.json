@@ -5,7 +5,7 @@
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
-  "remoteUser": "ubuntu",
+//  "remoteUser": "ubuntu",
 
   "customizations": {
     "jetbrains": {
@@ -32,11 +32,11 @@
     }
   },
 
-  "forwardPorts": [6080, 5901],
-
-  "portsAttributes": {
-    "6080": { "label": "noVNC Web", "protocol": "http" }
-  },
+//  "forwardPorts": [6080, 5901],
+//
+//  "portsAttributes": {
+//    "6080": { "label": "noVNC Web", "protocol": "http" }
+//  },
 
   "shutdownAction": "stopCompose",
 

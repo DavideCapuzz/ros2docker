@@ -245,8 +245,8 @@ RUN apt-get update && apt-get install -y \
     python3-jinja2 \
     python3-typeguard \
     ## Gazebo bridge
-    ros-$ROS_DISTRO-ros-gz-sim \
-    ros-$ROS_DISTRO-ros-gz-bridge \
+#    ros-$ROS_DISTRO-ros-gz-sim \
+#    ros-$ROS_DISTRO-ros-gz-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # Initialize rosdep
@@ -297,6 +297,10 @@ RUN rm /etc/apt/apt.conf.d/docker-clean
 COPY ./entrypoint.sh /
 RUN chmod +x entrypoint.sh
 RUN dos2unix /entrypoint.sh
+
+COPY tmp/endfunction.sh /tmp/endfunction.sh
+RUN chmod +x /tmp/endfunction.sh
+
 ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
 
 ENV USER ubuntu
