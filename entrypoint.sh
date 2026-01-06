@@ -1,5 +1,19 @@
 #!/bin/bash
 # Robot Container Entrypoint
+
+# Auto-calculate DISPLAY from VNC_PORT (5900 + display_num = VNC_PORT)
+# e.g., VNC_PORT=5901 -> DISPLAY=:1, VNC_PORT=5902 -> DISPLAY=:2
+VNC_PORT=${VNC_PORT:-5901}
+NOVNC_PORT=${NOVNC_PORT:-6080}
+DISPLAY_NUM=$((VNC_PORT - 5900))
+export DISPLAY=":${DISPLAY_NUM}"
+
+echo "========================================="
+echo "Auto-detected configuration:"
+echo "  VNC Port: $VNC_PORT -> Display: $DISPLAY"
+echo "  noVNC Port: $NOVNC_PORT"
+echo "========================================="
+
 # Supports: Multi-robot namespacing, CLion remote dev, Gazebo spawning
 # Create User
 USER=${USER:-root}
@@ -21,22 +35,26 @@ fi
 
 # VNC Setup
 VNC_PASSWORD=${PASSWORD}
+
 # Fix XDG_RUNTIME_DIR ownership
 mkdir -p /tmp/runtime-$USER
 chown $USER:$USER /tmp/runtime-$USER
 chmod 700 /tmp/runtime-$USER
 
+# Setup VNC password
 mkdir -p $HOME/.vnc
-echo $VNC_PASSWORD | vncpasswd -f > $HOME/.vnc/passwd
+echo "$VNC_PASSWORD" | vncpasswd -f > $HOME/.vnc/passwd
 chmod 600 $HOME/.vnc/passwd
+chown -R $USER:$USER $HOME/.vnc
 
+# Setup Xauthority
 touch $HOME/.Xauthority
 chown $USER:$USER $HOME/.Xauthority
 
-# Update noVNC password
+# Update noVNC password in UI
 sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/lib/novnc/app/ui.js
 
-# xstartup
+# Create xstartup script
 XSTARTUP_PATH=$HOME/.vnc/xstartup
 cat << EOF > $XSTARTUP_PATH
 #!/bin/sh
@@ -44,16 +62,13 @@ unset DBUS_SESSION_BUS_ADDRESS
 EOF
 chown $USER:$USER $XSTARTUP_PATH
 chmod 755 $XSTARTUP_PATH
-
-if [ $(uname -m) = "aarch64" ]; then
-    LD_PRELOAD=/lib/aarch64-linux-gnu/libgcc_s.so.1 vncserver :1 -fg -geometry 1920x1080 -depth 24
-else
-    vncserver :1 -fg -geometry 1920x1080 -depth 24
-fi
-EOF
+#EOF
 
 # Supervisor
+# Create Supervisor configuration
+mkdir -p /etc/supervisor/conf.d
 CONF_PATH=/etc/supervisor/conf.d/supervisord.conf
+
 cat << EOF > $CONF_PATH
 [supervisord]
 nodaemon=true
@@ -80,7 +95,9 @@ cat >> $BASHRC_PATH << 'BASHRC_EOF'
 # ========================================
 
 # Source ROS2
-source /opt/ros/${ROS_DISTRO}/setup.bash
+if [ -f /opt/ros/${ROS_DISTRO}/setup.bash ]; then
+    source /opt/ros/${ROS_DISTRO}/setup.bash
+fi
 
 # Source workspace (if built)
 if [ -f ~/ros2_ws/install/setup.bash ]; then
@@ -88,12 +105,14 @@ if [ -f ~/ros2_ws/install/setup.bash ]; then
 fi
 
 # Colcon autocomplete
-source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
+if [ -f /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash ]; then
+    source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
+fi
 
-# Robot-specific namespace
+# Robot-specific configuration
 export ROBOT_NAME=${ROBOT_NAME}
-export ROBOT_NAMESPACE=${ROBOT_NAMESPACE}
-export ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+export ROBOT_NAMESPACE=${ROBOT_NAMESPACE:-}
+export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
 
 # Use simulation time if configured
 if [ "${USE_SIM_TIME}" == "true" ]; then
@@ -104,8 +123,6 @@ fi
 export LIBGL_ALWAYS_SOFTWARE=1
 export MESA_GL_VERSION_OVERRIDE=3.3
 export XDG_RUNTIME_DIR=/tmp/runtime-${USER}
-
-# @TODO check if necessary
 export GZ_SIM_RENDER_ENGINE=ogre
 
 BASHRC_EOF
