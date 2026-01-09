@@ -172,11 +172,6 @@ ENV QT_X11_NO_MITSHM=1
 # Prevents OpenGL from trying (and failing) to use hardware acceleration.
 ENV LIBGL_ALWAYS_SOFTWARE=1
 
-# Ensure the XDG_RUNTIME_DIR is created with proper permissions
-# This runtime directory is required by many GUI frameworks like Qt, PulseAudio, Wayland, etc. expect this directory.
-# Containers usually don’t create it automatically.
-RUN mkdir -p /tmp/runtime-ubuntu && chmod 700 /tmp/runtime-ubuntu
-ENV XDG_RUNTIME_DIR=/tmp/runtime-ubuntu
 #########################################################
 
 ## VNC server
@@ -191,24 +186,6 @@ RUN apt-get update && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-# Creates VNC config directory
-# Writes an xstartup script that:
-# - Clears environment variables that break VNC
-# - Launches openbox window manager
-# Makes it executable
-# Fixes file ownership for the ubuntu user
-# VNC doesn’t automatically start a desktop
-# Without this file: You get a gray or black screen
-# dbus-launch enables clipboard, menus, and window actions
-RUN mkdir -p /home/ubuntu/.vnc && \
-    printf  \
-    '#!/bin/sh\n \
-    unset SESSION_MANAGER\n \
-    unset DBUS_SESSION_BUS_ADDRESS\n \
-    exec dbus-launch --exit-with-session openbox\n' \
-    > /home/ubuntu/.vnc/xstartup && \
-    chmod +x /home/ubuntu/.vnc/xstartup && \
-    chown -R ubuntu:ubuntu /home/ubuntu/.vnc
 ##################################################################################
 
 # noVNC and Websockify

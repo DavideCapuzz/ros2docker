@@ -12,11 +12,11 @@ services:
         INSTALL_PROFILE: custom
 
     environment:
-      DISPLAY: ":1"
+      DISPLAY: ":2"
       ROS_DISTRO: "jazzy"
       ROS_DOMAIN_ID: 0
-      VNC_PORT: "5901"
-      NOVNC_PORT: "6080"
+      VNC_PORT: "5902"
+      NOVNC_PORT: "6081"
       PYTHONUNBUFFERED: "1"
       LIBGL_ALWAYS_SOFTWARE: "1"
       MESA_GL_VERSION_OVERRIDE: "3.3"
@@ -32,8 +32,8 @@ services:
       - ros2_log:/home/ubuntu/ros2_ws/log
 
     ports:
-      - "6080:6080"   # noVNC
-      - "5901:5901"   # VNC
+      - "6081:6081"   # noVNC
+      - "5902:5902"   # VNC
 
     command: /tmp/endfunction.sh
 

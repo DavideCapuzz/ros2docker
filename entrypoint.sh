@@ -1,19 +1,6 @@
 #!/bin/bash
 # Robot Container Entrypoint
 
-# Auto-calculate DISPLAY from VNC_PORT (5900 + display_num = VNC_PORT)
-# e.g., VNC_PORT=5901 -> DISPLAY=:1, VNC_PORT=5902 -> DISPLAY=:2
-VNC_PORT=${VNC_PORT:-5901}
-NOVNC_PORT=${NOVNC_PORT:-6080}
-DISPLAY_NUM=$((VNC_PORT - 5900))
-export DISPLAY=":${DISPLAY_NUM}"
-
-echo "========================================="
-echo "Auto-detected configuration:"
-echo "  VNC Port: $VNC_PORT -> Display: $DISPLAY"
-echo "  noVNC Port: $NOVNC_PORT"
-echo "========================================="
-
 # Supports: Multi-robot namespacing, CLion remote dev, Gazebo spawning
 # Create User
 USER=${USER:-root}
@@ -76,8 +63,8 @@ user=root
 
 [program:vnc]
 user=${USER}
-command=/usr/bin/Xtigervnc :1 -geometry 1920x1080 -depth 24 -SecurityTypes None
-environment=HOME="${HOME}",USER="${USER}",DISPLAY=":1"
+command=/usr/bin/Xtigervnc ${DISPLAY} -geometry 1920x1080 -depth 24 -localhost -SecurityTypes None
+environment=HOME="${HOME}",USER="${USER}",DISPLAY="${DISPLAY}"
 autorestart=true
 priority=100
 
