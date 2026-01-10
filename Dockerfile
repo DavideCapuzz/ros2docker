@@ -238,7 +238,7 @@ FROM stage-ros2-core AS stage-extra-ros2-packages
 ARG INSTALL_PROFILE=default
 ARG ROBOT_NAME=robot1
 
-COPY ./tmp/${ROBOT_NAME}/install_robot_deps.sh /tmp/install_robot_deps.sh
+COPY ./${ROBOT_NAME}/install_robot_deps.sh /tmp/install_robot_deps.sh
 
 RUN chmod +x /tmp/install_robot_deps.sh && \
       /tmp/install_robot_deps.sh ${INSTALL_PROFILE}
@@ -278,7 +278,7 @@ COPY ./entrypoint.sh /
 RUN chmod +x entrypoint.sh
 RUN dos2unix /entrypoint.sh
 
-COPY tmp/${ROBOT_NAME}/endfunction.sh /tmp/endfunction.sh
+COPY ${ROBOT_NAME}/endfunction.sh /tmp/endfunction.sh
 RUN chmod +x /tmp/endfunction.sh
 
 ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]

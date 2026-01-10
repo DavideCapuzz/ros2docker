@@ -1,6 +1,6 @@
 {
   "name": "ros2setup",
-  "dockerComposeFile": "docker-compose.yml",
+  "dockerComposeFile": "tmp/docker-compose.yml",
   "initializeCommand": "cd ${localWorkspaceFolder}/.devcontainer/ros2docker/ && bash copy_robot_setup.sh",
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
@@ -42,5 +42,5 @@
 
   "overrideCommand": false,
 
-  "runServices": ["robot1","gazebo"],
+//  "runServices": ["robot1","gazebo"],
 }
