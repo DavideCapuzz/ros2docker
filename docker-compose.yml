@@ -10,6 +10,7 @@ services:
         USER_UID: 1000
         USER_GID: 1000
         INSTALL_PROFILE: custom
+        ROBOT_NAME: gazebo
 
     environment:
       DISPLAY: ":1"
@@ -21,7 +22,6 @@ services:
       QT_X11_NO_MITSHM: "1"
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
       GZ_PARTITION: ros2_gz_partition3
-      ROBOT_NAME: gazebo
 
     networks:
       - ros2_network
@@ -49,6 +49,7 @@ services:
         USER_UID: 1000
         USER_GID: 1000
         INSTALL_PROFILE: custom
+        ROBOT_NAME: robot1
 
     environment:
       DISPLAY: ":2"
@@ -60,7 +61,6 @@ services:
       QT_X11_NO_MITSHM: "1"
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
       GZ_PARTITION: ros2_gz_partition
-      ROBOT_NAME: bot1
 
     networks:
       - ros2_network

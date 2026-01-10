@@ -236,8 +236,9 @@ RUN rosdep init || true && \
 FROM stage-ros2-core AS stage-extra-ros2-packages
 
 ARG INSTALL_PROFILE=default
+ARG ROBOT_NAME=robot1
 
-COPY ./tmp/install_robot_deps.sh /tmp/install_robot_deps.sh
+COPY ./tmp/${ROBOT_NAME}/install_robot_deps.sh /tmp/install_robot_deps.sh
 
 RUN chmod +x /tmp/install_robot_deps.sh && \
       /tmp/install_robot_deps.sh ${INSTALL_PROFILE}
@@ -262,6 +263,7 @@ RUN mkdir -p $ROS2_WS/src && \
 # STAGE 6: ROS2 + RViz Container (Finalization)
 # ============================================================================
 FROM stage-workspace AS stage-finalization
+ARG ROBOT_NAME
 
 RUN apt-get autoremove -y \
     && apt-get clean -y \
@@ -270,12 +272,13 @@ RUN apt-get autoremove -y \
 # Enable apt-get completion after running `apt-get update` in the container
 RUN rm /etc/apt/apt.conf.d/docker-clean
 
+ENV ROBOT_NAME=${ROBOT_NAME}
 
 COPY ./entrypoint.sh /
 RUN chmod +x entrypoint.sh
 RUN dos2unix /entrypoint.sh
 
-COPY tmp/endfunction.sh /tmp/endfunction.sh
+COPY tmp/${ROBOT_NAME}/endfunction.sh /tmp/endfunction.sh
 RUN chmod +x /tmp/endfunction.sh
 
 ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
