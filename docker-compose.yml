@@ -20,7 +20,11 @@ services:
       MESA_GL_VERSION_OVERRIDE: "3.3"
       QT_X11_NO_MITSHM: "1"
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
+      GZ_PARTITION: ros2_gz_partition3
       ROBOT_NAME: gazebo
+
+    networks:
+      - ros2_network
 
     volumes:
       - ../../src:/home/ubuntu/ros2_ws/src
@@ -55,7 +59,11 @@ services:
       MESA_GL_VERSION_OVERRIDE: "3.3"
       QT_X11_NO_MITSHM: "1"
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
+      GZ_PARTITION: ros2_gz_partition
       ROBOT_NAME: bot1
+
+    networks:
+      - ros2_network
 
     volumes:
       - ../../src:/home/ubuntu/ros2_ws/src
@@ -74,3 +82,8 @@ services:
 #  ros2_build:
 #  ros2_install:
 #  ros2_log:
+
+
+networks:
+  ros2_network:
+    driver: bridge
