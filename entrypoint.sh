@@ -1,13 +1,30 @@
 #!/bin/bash
-# Robot Container Entrypoint
+# Robot Container Entrypoint - Single Variable Configuration
 
-# Supports: Multi-robot namespacing, CLion remote dev, Gazebo spawning
+# ============================================
+# CONFIGURATION FROM ENVIRONMENT
+# ============================================
+DISPLAY=${DISPLAY:-:1}
+DISPLAY_NUM=${DISPLAY:1}
+
+# Use explicit ports from environment, or calculate from DISPLAY
+VNC_PORT=${VNC_PORT:-$((5900 + DISPLAY_NUM))}
+NOVNC_PORT=${NOVNC_PORT:-$((6080 + DISPLAY_NUM -1))}
+
+echo "========================================="
+echo "Configuration:"
+echo "  DISPLAY: ${DISPLAY}"
+echo "  VNC Port: ${VNC_PORT}"
+echo "  noVNC Port: ${NOVNC_PORT}"
+echo "  Robot: ${ROBOT_NAME:-default}"
+echo "========================================="
+
 # Create User
 USER=${USER:-root}
 HOME=/root
 if [ "$USER" != "root" ]; then
     echo "* enable custom user: $USER"
-    useradd --create-home --shell /bin/bash --user-group --groups adm,sudo $USER
+    useradd --create-home --shell /bin/bash --user-group --groups adm,sudo $USER 2>/dev/null || echo "User already exists"
     echo "$USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
     if [ -z "$PASSWORD" ]; then
         echo "  set default password to \"ubuntu\""
@@ -15,7 +32,7 @@ if [ "$USER" != "root" ]; then
     fi
     HOME=/home/$USER
     echo "$USER:$PASSWORD" | /usr/sbin/chpasswd 2> /dev/null || echo ""
-    cp -r /root/{.config,.gtkrc-2.0,.asoundrc} ${HOME} 2>/dev/null
+    cp -r /root/{.config,.gtkrc-2.0,.asoundrc} ${HOME} 2>/dev/null || true
     chown -R $USER:$USER ${HOME}
     [ -d "/dev/snd" ] && chgrp -R adm /dev/snd
 fi
@@ -27,6 +44,9 @@ VNC_PASSWORD=${PASSWORD}
 mkdir -p /tmp/runtime-$USER
 chown $USER:$USER /tmp/runtime-$USER
 chmod 700 /tmp/runtime-$USER
+
+# Fix /tmp permissions
+chmod 1777 /tmp
 
 # Setup VNC password
 mkdir -p $HOME/.vnc
@@ -69,7 +89,8 @@ autorestart=true
 priority=100
 
 [program:novnc]
-command=gosu '${USER}' bash -c "websockify --web=/usr/lib/novnc ${NOVNC_PORT} localhost:${VNC_PORT}"
+user=${USER}
+command=/usr/local/bin/websockify --web=/usr/lib/novnc ${NOVNC_PORT} localhost:${VNC_PORT}
 autorestart=true
 priority=200
 EOF
@@ -119,16 +140,30 @@ chown $USER:$USER $BASHRC_PATH
 # Fix rosdep permissions
 mkdir -p $HOME/.ros
 if [ -d /root/.ros/rosdep ]; then
-    cp -r /root/.ros/rosdep $HOME/.ros/rosdep
+    cp -r /root/.ros/rosdep $HOME/.ros/rosdep 2>/dev/null || true
 fi
-chown -R $USER:$USER $HOME/.ros
+chown -R $USER:$USER $HOME/.ros 2>/dev/null || true
 
-#EOF
-chown -R $USER:$USER $HOME/Desktop
-
-# clearup
+# Cleanup
 PASSWORD=
 VNC_PASSWORD=
 
-# Start services
-exec /bin/tini -- supervisord -n -c /etc/supervisor/supervisord.conf
+# Start supervisor in background
+/bin/tini -- supervisord -c /etc/supervisor/supervisord.conf &
+
+# Wait for VNC to be ready
+echo "Waiting for VNC server on ${DISPLAY} to be ready..."
+for i in {1..30}; do
+    if DISPLAY=${DISPLAY} xdpyinfo >/dev/null 2>&1; then
+        echo "✓ VNC server is ready on ${DISPLAY}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "✗ VNC server failed to start after 30 seconds"
+        exit 1
+    fi
+    sleep 1
+done
+
+# Wait for supervisor (keeps container running)
+wait

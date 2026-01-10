@@ -1,4 +1,39 @@
 services:
+  gazebo:
+    container_name: gazebo
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_DISTRO: jazzy
+        USERNAME: ubuntu
+        USER_UID: 1000
+        USER_GID: 1000
+        INSTALL_PROFILE: custom
+
+    environment:
+      DISPLAY: ":1"
+      ROS_DISTRO: "jazzy"
+      ROS_DOMAIN_ID: 0
+      PYTHONUNBUFFERED: "1"
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "3.3"
+      QT_X11_NO_MITSHM: "1"
+      GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
+      ROBOT_NAME: gazebo
+
+    volumes:
+      - ../../src:/home/ubuntu/ros2_ws/src
+      - ../../launch:/home/ubuntu/ros2_ws/launch
+    #      - ros2_build:/home/ubuntu/ros2_ws/build
+    #      - ros2_install:/home/ubuntu/ros2_ws/install
+    #      - ros2_log:/home/ubuntu/ros2_ws/log
+
+    ports:
+      - "6080:6080"   # noVNC
+      - "5901:5901"   # VNC
+
+    command: /tmp/endfunction.sh
   robot1:
     container_name: robot1
     build:
@@ -15,8 +50,6 @@ services:
       DISPLAY: ":2"
       ROS_DISTRO: "jazzy"
       ROS_DOMAIN_ID: 0
-      VNC_PORT: "5902"
-      NOVNC_PORT: "6081"
       PYTHONUNBUFFERED: "1"
       LIBGL_ALWAYS_SOFTWARE: "1"
       MESA_GL_VERSION_OVERRIDE: "3.3"
@@ -27,9 +60,9 @@ services:
     volumes:
       - ../../src:/home/ubuntu/ros2_ws/src
       - ../../launch:/home/ubuntu/ros2_ws/launch
-      - ros2_build:/home/ubuntu/ros2_ws/build
-      - ros2_install:/home/ubuntu/ros2_ws/install
-      - ros2_log:/home/ubuntu/ros2_ws/log
+#      - ros2_build:/home/ubuntu/ros2_ws/build
+#      - ros2_install:/home/ubuntu/ros2_ws/install
+#      - ros2_log:/home/ubuntu/ros2_ws/log
 
     ports:
       - "6081:6081"   # noVNC
@@ -37,7 +70,7 @@ services:
 
     command: /tmp/endfunction.sh
 
-volumes:
-  ros2_build:
-  ros2_install:
-  ros2_log:
+#volumes:
+#  ros2_build:
+#  ros2_install:
+#  ros2_log:

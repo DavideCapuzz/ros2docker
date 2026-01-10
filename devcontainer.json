@@ -42,5 +42,5 @@
 
   "overrideCommand": false,
 
-  "runServices": ["robot1"],
+  "runServices": ["robot1","gazebo"],
 }
