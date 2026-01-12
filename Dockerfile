@@ -238,7 +238,7 @@ FROM stage-ros2-core AS stage-extra-ros2-packages
 ARG INSTALL_PROFILE=default
 ARG ROBOT_NAME=robot1
 
-COPY ./${ROBOT_NAME}/install_robot_deps.sh /tmp/install_robot_deps.sh
+COPY ./install_robot_deps.sh /tmp/install_robot_deps.sh
 
 RUN chmod +x /tmp/install_robot_deps.sh && \
       /tmp/install_robot_deps.sh ${INSTALL_PROFILE}

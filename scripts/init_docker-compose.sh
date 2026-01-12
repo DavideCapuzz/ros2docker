@@ -63,6 +63,7 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
     PROFILE=${CONFIG[${ROBOT_NAME}_profile]:-custom}
     DOMAIN=${CONFIG[${ROBOT_NAME}_domain]:-0}
     VOLS=${CONFIG[${ROBOT_NAME}_volumes]}
+    ENDFUNCTION=${CONFIG[${ROBOT_NAME}_endfunction]}
 
     echo $DISPLAY $NETWORK $PROFILE $DOMAIN $VOLS
 
@@ -81,6 +82,26 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
             vol=$(echo "$vol" | xargs)
             [ -n "$vol" ] && VOLUMES[$vol]=1
         done
+    fi
+
+    # Copy endfunction per robot
+    TARGET_DIR="./tmp/${ROBOT_NAME}"
+    mkdir -p "$TARGET_DIR"
+
+    if [ -n "$ENDFUNCTION" ]; then
+        SRC="../$ENDFUNCTION"
+
+        if [ -f "$SRC" ]; then
+            cp "$SRC" "$TARGET_DIR/endfunction.sh"
+            echo "✓ Copied endfunction for $ROBOT_NAME -> $TARGET_DIR/endfunction.sh"
+        else
+            echo "⚠ Endfunction not found: $SRC"
+            echo "  Using template instead."
+            cp template/endfunction.sh "$TARGET_DIR/endfunction.sh"
+        fi
+    else
+        echo "ℹ No endfunction specified for $ROBOT_NAME, using template."
+        cp template/endfunction.sh "$TARGET_DIR/endfunction.sh"
     fi
 
     echo "  Generating: $ROBOT_NAME"
@@ -144,6 +165,7 @@ EOF
 
     command: /tmp/endfunction.sh
 EOF
+
 done
 
 # Add volumes
