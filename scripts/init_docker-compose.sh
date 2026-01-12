@@ -3,7 +3,6 @@
 
 set -e
 
-
 OUTPUT_FILE="tmp/docker-compose.yml"
 CONFIG_FILE="${1:-../setup.ini}"
 
@@ -60,19 +59,26 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
     display_counter=$((display_counter+1))
     DISPLAY=${display_counter}
     NETWORK=${CONFIG[${ROBOT_NAME}_network]}
-    PROFILE=${CONFIG[${ROBOT_NAME}_profile]:-custom}
-    DOMAIN=${CONFIG[${ROBOT_NAME}_domain]:-0}
+    PROFILE=${CONFIG[${ROBOT_NAME}_install_profile]:-custom}
+    DOMAIN=${CONFIG[${ROBOT_NAME}_ros_domain]:-0}
     VOLS=${CONFIG[${ROBOT_NAME}_volumes]}
     ENDFUNCTION=${CONFIG[${ROBOT_NAME}_endfunction]}
+    ENV_VARS=${CONFIG[${ROBOT_NAME}_env]}
 
-    echo $DISPLAY $NETWORK $PROFILE $DOMAIN $VOLS
+    echo "=== Processing: $ROBOT_NAME ==="
+    echo "DISPLAY: $DISPLAY"
+    echo "NETWORK: $NETWORK"
+    echo "PROFILE: $PROFILE"
+    echo "DOMAIN: $DOMAIN"
+    echo "VOLS: $VOLS"
+    echo "ENDFUNCTION: $ENDFUNCTION"
+    echo "ENV_VARS: '$ENV_VARS'"  # ← Added quotes to see if empty
+    echo "================================"
 
     # Calculate ports
     DISPLAY_NUM=${DISPLAY}
     VNC_PORT=$((5900 + DISPLAY_NUM))
     NOVNC_PORT=$((6080 + DISPLAY_NUM - 1))
-
-    echo $DISPLAY_NUM $VNC_PORT $NOVNC_PORT
 
     # Track resources
     [ -n "$NETWORK" ] && NETWORKS[$NETWORK]=1
@@ -133,6 +139,36 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
       GZ_PARTITION: ros2_gz_partition
       ROBOT_NAME: $ROBOT_NAME
 EOF
+
+    if [ -n "$ENV_VARS" ]; then
+        echo "DEBUG: Processing ENV_VARS for $ROBOT_NAME: '$ENV_VARS'"
+        IFS=';' read -ra ENV_ARRAY <<< "$ENV_VARS"
+        echo "DEBUG: Split into ${#ENV_ARRAY[@]} items: ${ENV_ARRAY[*]}"
+
+        for env_kv in "${ENV_ARRAY[@]}"; do
+            env_kv=$(echo "$env_kv" | xargs)
+            echo "DEBUG: Processing env pair: '$env_kv'"
+
+            # Split on FIRST = only (key=value)
+            if [[ "$env_kv" =~ ^([^:]+):(.*)$ ]]; then
+                KEY="${BASH_REMATCH[1]}"
+                VALUE="${BASH_REMATCH[2]}"
+
+                echo "DEBUG:   KEY='$KEY' VALUE='$VALUE'"
+
+                if [ -n "$KEY" ] && [ -n "$VALUE" ]; then
+                    echo "      $KEY: \"$VALUE\"" >> "$OUTPUT_FILE"
+                    echo "DEBUG:   ✓ Added to file"
+                else
+                    echo "DEBUG:   ✗ Skipped (empty key or value)"
+                fi
+            else
+                echo "DEBUG:   ✗ Invalid format (no = found)"
+            fi
+        done
+    else
+        echo "DEBUG: No ENV_VARS for $ROBOT_NAME"
+    fi
 
     if [ -n "$NETWORK" ]; then
         cat >> "$OUTPUT_FILE" <<EOF
