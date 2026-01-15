@@ -175,28 +175,22 @@ ENV LIBGL_ALWAYS_SOFTWARE=1
 #########################################################
 
 ## VNC server
+#    novnc                             remote desktop in a web browser https://github.com/novnc/noVNC
+#    websockify                         WebSocket-to-TCP proxy/bridge, a tool that translates standard WebSocket traffic into regular socket (TCP) traffic https://github.com/novnc/websockify
 #    tigervnc-standalone-server        Provides the VNC server (X server + VNC protocol)
 #    tigervnc-common                   Shared libraries and utilities required by TigerVNC
 
 RUN apt-get update && \
     apt-get install -y \
+    novnc \
+    websockify \
     tigervnc-standalone-server  \
     tigervnc-common && \
     apt-get autoclean && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
-##################################################################################
-
-# noVNC and Websockify
-RUN git clone https://github.com/AtsushiSaito/noVNC.git -b add_clipboard_support /usr/lib/novnc
-RUN pip install --break-system-packages git+https://github.com/novnc/websockify.git
-# Makes http://host:port/ load noVNC automatically
-RUN ln -s /usr/lib/novnc/vnc.html /usr/lib/novnc/index.html
-
-# Set remote resize function enabled by default
-RUN sed -i "s/UI.initSetting('resize', 'off');/UI.initSetting('resize', 'remote');/g" /usr/lib/novnc/app/ui.js
-
+RUN ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
 # ============================================================================
 # STAGE 3: ROS2 Core Packages
 # ============================================================================
@@ -204,26 +198,13 @@ RUN sed -i "s/UI.initSetting('resize', 'off');/UI.initSetting('resize', 'remote'
 FROM stage-graphics AS stage-ros2-core
 
 RUN apt-get update && apt-get install -y \
-    ## Build and dev tools TBD
-#    python3-colcon-common-extensions \
-#    python3-colcon-clean \
-#    python3-rosdep \
-#    python3-vcstool \
-#    ros-dev-tools \
     ## Common ROS2 packages
     ros-$ROS_DISTRO-can-msgs \
     ros-$ROS_DISTRO-bondcpp \
     ros-$ROS_DISTRO-rosbag2-storage-mcap \
-    ## Communication middleware
-#    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
     ## Development libraries
     nlohmann-json3-dev \
-#    libsuitesparse-dev \
     python3-jinja2 \
-    python3-typeguard \
-    ## Gazebo bridge
-#    ros-$ROS_DISTRO-ros-gz-sim \
-#    ros-$ROS_DISTRO-ros-gz-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # Initialize rosdep

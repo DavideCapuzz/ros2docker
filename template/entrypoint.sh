@@ -9,7 +9,7 @@ DISPLAY_NUM=${DISPLAY:1}
 
 # Use explicit ports from environment, or calculate from DISPLAY
 VNC_PORT=${VNC_PORT:-$((5900 + DISPLAY_NUM))}
-NOVNC_PORT=${NOVNC_PORT:-$((6080 + DISPLAY_NUM -1))}
+NOVNC_PORT=${NOVNC_PORT:-$((6080 + DISPLAY_NUM - 1))}
 
 echo "========================================="
 echo "Configuration:"
@@ -59,8 +59,12 @@ touch $HOME/.Xauthority
 chown $USER:$USER $HOME/.Xauthority
 
 # Update noVNC password in UI
-sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/lib/novnc/app/ui.js
-
+#sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/lib/novnc/app/ui.js
+if [ -f /usr/share/novnc/app/ui.js ]; then
+    sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/share/novnc/app/ui.js
+elif [ -f /usr/lib/novnc/app/ui.js ]; then
+    sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/lib/novnc/app/ui.js
+fi
 # Create xstartup script
 XSTARTUP_PATH=$HOME/.vnc/xstartup
 cat << EOF > $XSTARTUP_PATH
@@ -90,37 +94,37 @@ priority=100
 
 [program:novnc]
 user=${USER}
-command=/usr/local/bin/websockify --web=/usr/lib/novnc ${NOVNC_PORT} localhost:${VNC_PORT}
+command=/usr/bin/websockify --web=/usr/share/novnc ${NOVNC_PORT} localhost:${VNC_PORT}
 autorestart=true
 priority=200
 
 [program:robot_startup]
-#user=${USER}
-#command=/bin/bash /tmp/endfunction.sh
-#directory=/home/${USER}
-#environment=HOME="/home/${USER}",USER="${USER}",ROS_DISTRO="jazzy",ROBOT_NAME="${ROBOT_NAME}",DISPLAY="${DISPLAY}"
-#autorestart=false
-#startsecs=0
-#priority=300
-#stdout_logfile=/var/log/supervisor/robot_startup.log
-#stderr_logfile=/var/log/supervisor/robot_startup_error.log
-
-command=/bin/bash -lc "/tmp/endfunction.sh"
-directory=/home/ubuntu
-user=ubuntu
-
-environment=
-    HOME="/home/ubuntu",
-    USER="ubuntu",
-    ROS_DISTRO="jazzy"
-
-autostart=true
+user=${USER}
+command=/bin/bash /tmp/endfunction.sh
+directory=/home/${USER}
+environment=HOME="/home/${USER}",USER="${USER}",ROS_DISTRO="jazzy",ROBOT_NAME="${ROBOT_NAME}",DISPLAY="${DISPLAY}"
 autorestart=false
 startsecs=0
 priority=300
-
 stdout_logfile=/var/log/supervisor/robot_startup.log
 stderr_logfile=/var/log/supervisor/robot_startup_error.log
+
+#command=/bin/bash -lc "/tmp/endfunction.sh"
+#directory=/home/ubuntu
+#user=ubuntu
+#
+#environment=
+#    HOME="/home/ubuntu",
+#    USER="ubuntu",
+#    ROS_DISTRO="jazzy"
+#
+#autostart=true
+#autorestart=false
+#startsecs=0
+#priority=300
+#
+#stdout_logfile=/var/log/supervisor/robot_startup.log
+#stderr_logfile=/var/log/supervisor/robot_startup_error.log
 EOF
 
 # Setup bashrc with robot-specific configuration
