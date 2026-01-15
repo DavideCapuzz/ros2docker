@@ -181,8 +181,8 @@ EOF
     cat >> "$OUTPUT_FILE" <<EOF
 
     volumes:
-      - ../../src:/home/ubuntu/ros2_ws/src
-      - ../../launch:/home/ubuntu/ros2_ws/launch
+      - ../../../src:/home/ubuntu/ros2_ws/src
+      - ../../../launch:/home/ubuntu/ros2_ws/launch
 EOF
 
     if [ -n "$VOLS" ]; then
@@ -198,8 +198,6 @@ EOF
     ports:
       - "$NOVNC_PORT:$NOVNC_PORT"
       - "$VNC_PORT:$VNC_PORT"
-
-    command: /tmp/endfunction.sh
 EOF
 
 done

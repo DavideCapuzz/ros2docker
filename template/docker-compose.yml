@@ -36,8 +36,6 @@ services:
       - "6080:6080"   # noVNC
       - "5901:5901"   # VNC
 
-    command: /tmp/endfunction.sh
-
 volumes:
   ros2_build:
   ros2_install:

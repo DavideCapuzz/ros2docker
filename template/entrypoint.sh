@@ -93,6 +93,34 @@ user=${USER}
 command=/usr/local/bin/websockify --web=/usr/lib/novnc ${NOVNC_PORT} localhost:${VNC_PORT}
 autorestart=true
 priority=200
+
+[program:robot_startup]
+#user=${USER}
+#command=/bin/bash /tmp/endfunction.sh
+#directory=/home/${USER}
+#environment=HOME="/home/${USER}",USER="${USER}",ROS_DISTRO="jazzy",ROBOT_NAME="${ROBOT_NAME}",DISPLAY="${DISPLAY}"
+#autorestart=false
+#startsecs=0
+#priority=300
+#stdout_logfile=/var/log/supervisor/robot_startup.log
+#stderr_logfile=/var/log/supervisor/robot_startup_error.log
+
+command=/bin/bash -lc "/tmp/endfunction.sh"
+directory=/home/ubuntu
+user=ubuntu
+
+environment=
+    HOME="/home/ubuntu",
+    USER="ubuntu",
+    ROS_DISTRO="jazzy"
+
+autostart=true
+autorestart=false
+startsecs=0
+priority=300
+
+stdout_logfile=/var/log/supervisor/robot_startup.log
+stderr_logfile=/var/log/supervisor/robot_startup_error.log
 EOF
 
 # Setup bashrc with robot-specific configuration
