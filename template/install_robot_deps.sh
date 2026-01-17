@@ -37,19 +37,9 @@ install_core_packages() {
         python3-jinja2 \
         python3-typeguard \
         # Communication
+        python3-path \
+        ros-${ROS_DISTRO}-rviz2 \
         ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-        && rm -rf /var/lib/apt/lists/*
-}
-
-# ============================================================================
-# GAZEBO & SIMULATION
-# ============================================================================
-install_simulation_packages() {
-    echo ">>> Installing Simulation Packages..."
-    apt-get update && apt-get install -y \
-        ros-${ROS_DISTRO}-ros-gz-sim \
-        ros-${ROS_DISTRO}-ros-gz-bridge \
-        ros-${ROS_DISTRO}-ros-gz-interfaces \
         && rm -rf /var/lib/apt/lists/*
 }
 
@@ -160,24 +150,21 @@ install_ceres_libraries() {
 # ============================================================================
 install_gazebo_bridge_libraries() {
     echo ">>> Installing Custom Libraries..."
+    ## Gazebo
     apt-get update && apt-get install -y \
-            ## Gazebo
-            ros-${ROS_DISTRO}-ros-gz-bridge \
-            && rm -rf /var/lib/apt/lists/*
+        ros-${ROS_DISTRO}-ros-gz-bridge \
+        ros-${ROS_DISTRO}-ros-gz-sim \
+        ros-${ROS_DISTRO}-xacro \
+        && rm -rf /var/lib/apt/lists/*
 }
 
-install_gazebo_libraries() {
-    echo ">>> Installing Custom Libraries..."
-    apt-get update && apt-get install -y \
-            ## Gazebo bridge
-            ros-${ROS_DISTRO}-ros-gz-sim \
-            && rm -rf /var/lib/apt/lists/*
-}
 # ============================================================================
 # CUSTOM LIBRARIES (Ceres, etc.)
 # ============================================================================
 install_custom_libraries() {
     echo ">>> Installing Custom Libraries..."
+    apt-get update && apt-get install -y \
+    && rm -rf /var/lib/apt/lists/*
 }
 
 # ============================================================================
@@ -219,7 +206,12 @@ case "${PROFILE}" in
         ;;
 
     custom)
+        install_core_packages
         install_custom_libraries
+        ;;
+
+    gazebo)
+        install_gazebo_bridge_libraries
         ;;
 
     default)

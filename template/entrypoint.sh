@@ -108,23 +108,6 @@ startsecs=0
 priority=300
 stdout_logfile=/var/log/supervisor/robot_startup.log
 stderr_logfile=/var/log/supervisor/robot_startup_error.log
-
-#command=/bin/bash -lc "/tmp/endfunction.sh"
-#directory=/home/ubuntu
-#user=ubuntu
-#
-#environment=
-#    HOME="/home/ubuntu",
-#    USER="ubuntu",
-#    ROS_DISTRO="jazzy"
-#
-#autostart=true
-#autorestart=false
-#startsecs=0
-#priority=300
-#
-#stdout_logfile=/var/log/supervisor/robot_startup.log
-#stderr_logfile=/var/log/supervisor/robot_startup_error.log
 EOF
 
 # Setup bashrc with robot-specific configuration
