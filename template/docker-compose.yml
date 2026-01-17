@@ -6,6 +6,7 @@ services:
       dockerfile: ../Dockerfile
       args:
         ROS_DISTRO: jazzy
+        ROS_VERSION: desktop-full
         USERNAME: ubuntu
         USER_UID: 1000
         USER_GID: 1000

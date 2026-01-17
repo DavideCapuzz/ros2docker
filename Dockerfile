@@ -19,9 +19,9 @@
 # which are released under the Apache-2.0 license.
 
 ARG ROS_DISTRO=jazzy
-ARG ROS_VERSION=base
+ARG ROS_INSTALL=osrf/ros:${ROS_DISTRO}-desktop-full
 # Download the correct image form docker hub
-FROM osrf/ros:${ROS_DISTRO}-desktop-full AS stage-base
+FROM ${ROS_INSTALL} AS stage-base
 
 LABEL maintainer="Davide Capuzzo"
 

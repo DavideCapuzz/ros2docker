@@ -60,6 +60,8 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
     DISPLAY=${display_counter}
     NETWORK=${CONFIG[${ROBOT_NAME}_network]}
     PROFILE=${CONFIG[${ROBOT_NAME}_install_profile]:-custom}
+    ROS_DISTRO=${CONFIG[${ROBOT_NAME}_ros_distro]:-jazzy}
+    ROS_INSTALL=${CONFIG[${ROBOT_NAME}_ros_install]:-osrf/ros:${ROS_DISTRO}-desktop-full}
     DOMAIN=${CONFIG[${ROBOT_NAME}_ros_domain]:-0}
     VOLS=${CONFIG[${ROBOT_NAME}_volumes]}
     ENDFUNCTION=${CONFIG[${ROBOT_NAME}_endfunction]}
@@ -120,7 +122,8 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
       context: .
       dockerfile: ../Dockerfile
       args:
-        ROS_DISTRO: jazzy
+        ROS_DISTRO: $ROS_DISTRO
+        ROS_INSTALL: $ROS_INSTALL
         USERNAME: ubuntu
         USER_UID: 1000
         USER_GID: 1000
@@ -129,7 +132,7 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
 
     environment:
       DISPLAY: ":$DISPLAY"
-      ROS_DISTRO: "jazzy"
+      ROS_DISTRO: "$ROS_DISTRO"
       ROS_DOMAIN_ID: $DOMAIN
       PYTHONUNBUFFERED: "1"
       LIBGL_ALWAYS_SOFTWARE: "1"
