@@ -1,0 +1,77 @@
+# docker-compose.yml - Improved Version
+
+services:
+  robot1:
+    container_name: robot1
+    build:
+      # ADDED: Explicit context - tells Docker where to find Dockerfile and files to COPY
+      context: .
+      dockerfile: ../Dockerfile
+      args:
+        ROS_DISTRO: jazzy
+        USERNAME: ubuntu
+        USER_UID: 1000
+        USER_GID: 1000
+        INSTALL_PROFILE: custom
+        ROBOT_NAME: robot1
+
+    environment:
+      DISPLAY: ":1"
+      ROS_DISTRO: "jazzy"
+      ROS_DOMAIN_ID: 0
+      PYTHONUNBUFFERED: "1"
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "3.3"
+      QT_X11_NO_MITSHM: "1"
+      # ADDED: Critical for Qt/Gazebo GUI - without this, Qt apps will crash
+      QT_QPA_PLATFORM: "xcb"
+      GZ_SIM_RENDER_ENGINE: "ogre"
+      GZ_PARTITION: ros2_gz_partition
+      # ADDED: Pass ROBOT_NAME to container runtime (not just build time)
+      ROBOT_NAME: robot1
+
+    networks:
+      - ros2_network
+
+    volumes:
+      - ../../src:/home/ubuntu/ros2_ws/src
+      - ../../launch:/home/ubuntu/ros2_ws/launch
+      # ADDED: Named volumes for persistence across container rebuilds
+      - ros2_build_robot1:/home/ubuntu/ros2_ws/build
+      - ros2_install_robot1:/home/ubuntu/ros2_ws/install
+      - ros2_log_robot1:/home/ubuntu/ros2_ws/log
+
+    ports:
+      - "6080:6080"   # noVNC - web browser access
+      - "5901:5901"   # VNC - direct VNC client access
+
+    # ADDED: Container startup command (was missing!)
+    command: /tmp/endfunction.sh
+
+    # ADDED: Health check to verify VNC is running
+    healthcheck:
+      test: ["CMD", "bash", "-c", "xdpyinfo -display :1 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+    # ADDED: Restart policy for production reliability
+    restart: unless-stopped
+
+# CHANGED: Unique volume names per robot to avoid conflicts
+volumes:
+  ros2_build_robot1:
+  ros2_install_robot1:
+  ros2_log_robot1:
+
+networks:
+  ros2_network:
+    driver: bridge
+    # ADDED: Enable IPv6 if needed
+    # enable_ipv6: true
+    # ADDED: Custom subnet for predictable IP addresses
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

@@ -11,6 +11,7 @@ if [ -f ../docker-compose.yml ]; then
 elif [ -f ../setup.ini ]; then
   bash scripts/init_docker-compose.sh ../setup.ini
   echo "File install_robot_deps not found, using the template."
+  bash scripts/copy_endfunction.sh
 else
   # If the file is not found, use the template instead
   cp template/docker-compose.yml ./tmp/docker-compose.yml

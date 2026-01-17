@@ -86,7 +86,7 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
         IFS=',' read -ra VOL_ARRAY <<< "$VOLS"
         for vol in "${VOL_ARRAY[@]}"; do
             vol=$(echo "$vol" | xargs)
-            [ -n "$vol" ] && VOLUMES[$vol]=1
+            [ -n "$vol" ] && VOLUMES["${ROBOT_NAME}_${vol}"]="$vol"
         done
     fi
 
@@ -117,6 +117,7 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
   $ROBOT_NAME:
     container_name: $ROBOT_NAME
     build:
+      context: .
       dockerfile: ../Dockerfile
       args:
         ROS_DISTRO: jazzy
@@ -149,7 +150,7 @@ EOF
             env_kv=$(echo "$env_kv" | xargs)
             echo "DEBUG: Processing env pair: '$env_kv'"
 
-            # Split on FIRST = only (key=value)
+            # Split on FIRST ':' only (KEY:VALUE)
             if [[ "$env_kv" =~ ^([^:]+):(.*)$ ]]; then
                 KEY="${BASH_REMATCH[1]}"
                 VALUE="${BASH_REMATCH[2]}"
@@ -189,7 +190,9 @@ EOF
         IFS=',' read -ra VOL_ARRAY <<< "$VOLS"
         for vol in "${VOL_ARRAY[@]}"; do
             vol=$(echo "$vol" | xargs)
-            [ -n "$vol" ] && echo "      - ${vol}:/home/ubuntu/ros2_ws/${vol}" >> "$OUTPUT_FILE"
+            if [ -n "$vol" ]; then
+                echo "      - ${ROBOT_NAME}_${vol}:/home/ubuntu/ros2_ws/${vol}" >> "$OUTPUT_FILE"
+            fi
         done
     fi
 

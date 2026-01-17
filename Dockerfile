@@ -19,6 +19,7 @@
 # which are released under the Apache-2.0 license.
 
 ARG ROS_DISTRO=jazzy
+ARG ROS_VERSION=base
 # Download the correct image form docker hub
 FROM osrf/ros:${ROS_DISTRO}-desktop-full AS stage-base
 
@@ -182,15 +183,17 @@ ENV LIBGL_ALWAYS_SOFTWARE=1
 
 RUN apt-get update && \
     apt-get install -y \
-    novnc \
-    websockify \
-    tigervnc-standalone-server  \
-    tigervnc-common && \
+      novnc \
+      websockify \
+      tigervnc-standalone-server \
+      tigervnc-common && \
     apt-get autoclean && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/*
 
+# Create index.html symlink for easier noVNC access
 RUN ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
 # ============================================================================
 # STAGE 3: ROS2 Core Packages
 # ============================================================================
@@ -217,12 +220,14 @@ RUN rosdep init || true && \
 FROM stage-ros2-core AS stage-extra-ros2-packages
 
 ARG INSTALL_PROFILE=default
+# Declare ROBOT_NAME here so it's available in this stage
 ARG ROBOT_NAME=robot1
 
 COPY ./install_robot_deps.sh /tmp/install_robot_deps.sh
 
 RUN chmod +x /tmp/install_robot_deps.sh && \
-      /tmp/install_robot_deps.sh ${INSTALL_PROFILE}
+    /tmp/install_robot_deps.sh ${INSTALL_PROFILE}
+
 # ============================================================================
 # STAGE 5: Workspace Setup
 # ============================================================================
@@ -233,7 +238,6 @@ FROM stage-extra-ros2-packages AS stage-workspace
 ENV USER=ubuntu
 ENV HOME=/home/ubuntu
 ENV ROS2_WS=$HOME/ros2_ws
-#WORKDIR $HOME
 
 RUN mkdir -p $ROS2_WS/src && \
     cd $ROS2_WS && \
@@ -241,18 +245,21 @@ RUN mkdir -p $ROS2_WS/src && \
     colcon build --symlink-install
 
 # ============================================================================
-# STAGE 6: ROS2 + RViz Container (Finalization)
+# STAGE 6: Finalization
 # ============================================================================
 FROM stage-workspace AS stage-finalization
-ARG ROBOT_NAME
 
-RUN apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
+# Re-declare ARG after FROM to make it available in this stage
+ARG ROBOT_NAME=robot1
+
+RUN apt-get autoremove -y && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Enable apt-get completion after running `apt-get update` in the container
-RUN rm /etc/apt/apt.conf.d/docker-clean
+RUN rm -f /etc/apt/apt.conf.d/docker-clean
 
+# Set ROBOT_NAME as environment variable for runtime
 ENV ROBOT_NAME=${ROBOT_NAME}
 
 COPY ./entrypoint.sh /
@@ -262,7 +269,11 @@ RUN dos2unix /entrypoint.sh
 COPY ${ROBOT_NAME}/endfunction.sh /tmp/endfunction.sh
 RUN chmod +x /tmp/endfunction.sh
 
-ENTRYPOINT [ "/bin/bash", "-c", "/entrypoint.sh" ]
+ENTRYPOINT ["/bin/bash", "-c", "/entrypoint.sh"]
 
-ENV USER ubuntu
-ENV PASSWD ubuntu
+ENV USER=ubuntu
+ENV PASSWD=ubuntu
+
+# Add labels for better container management
+LABEL robot.name="${ROBOT_NAME}"
+LABEL robot.ros_distro="${ROS_DISTRO}"

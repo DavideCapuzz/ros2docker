@@ -2,6 +2,7 @@ services:
   robot1:
     container_name: robot1
     build:
+      context: .
       dockerfile: ../Dockerfile
       args:
         ROS_DISTRO: jazzy
@@ -19,8 +20,10 @@ services:
       LIBGL_ALWAYS_SOFTWARE: "1"
       MESA_GL_VERSION_OVERRIDE: "3.3"
       QT_X11_NO_MITSHM: "1"
+      QT_QPA_PLATFORM: "xcb"
       GZ_SIM_RENDER_ENGINE: "ogre"  # Force Ogre1 instead of Ogre2
       GZ_PARTITION: ros2_gz_partition
+      ROBOT_NAME: robot1
 
     networks:
       - ros2_network
@@ -28,19 +31,23 @@ services:
     volumes:
       - ../../src:/home/ubuntu/ros2_ws/src
       - ../../launch:/home/ubuntu/ros2_ws/launch
-      - ros2_build:/home/ubuntu/ros2_ws/build
-      - ros2_install:/home/ubuntu/ros2_ws/install
-      - ros2_log:/home/ubuntu/ros2_ws/log
+      - robot1_build:/home/ubuntu/ros2_ws/build
+      - robot1_install:/home/ubuntu/ros2_ws/install
+      - robot1_log:/home/ubuntu/ros2_ws/log
 
     ports:
       - "6080:6080"   # noVNC
       - "5901:5901"   # VNC
 
 volumes:
-  ros2_build:
-  ros2_install:
-  ros2_log:
+  robot1_build:
+  robot1_install:
+  robot1_log:
 
 networks:
   ros2_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
