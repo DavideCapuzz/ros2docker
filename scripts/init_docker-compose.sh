@@ -99,7 +99,7 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
     display_counter=$((display_counter+1))
     DISPLAY=${display_counter}
     NETWORK=${CONFIG[${ROBOT_NAME}_network]}
-    PROFILE=${CONFIG[${ROBOT_NAME}_install_profile]:-custom}
+    PROFILE=${CONFIG[${ROBOT_NAME}_install_profile]:-default}
     ROS_DISTRO=${CONFIG[${ROBOT_NAME}_ros_distro]:-jazzy}
     ROS_INSTALL=${CONFIG[${ROBOT_NAME}_ros_install]:-osrf/ros:${ROS_DISTRO}-desktop-full}
     DOMAIN=${CONFIG[${ROBOT_NAME}_ros_domain]:-0}
