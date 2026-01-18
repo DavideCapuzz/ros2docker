@@ -11,7 +11,7 @@ declare -a ROBOTS
 declare -A NETWORKS
 declare -A VOLUMES
 
-# Enhanced INI parser - FIXED to handle files without trailing newline
+# Enhanced INI parser
 parse_ini() {
     local section=""
     local line_num=0

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Funtion to extract the list of services form the docker-compose.yml file
 get_services() {
   awk '
     /^services:/ { in_services=1; next }
@@ -15,6 +16,9 @@ SERVICES=($(get_services))
 echo "${SERVICES[@]}"
 
 for SERVICE in "${SERVICES[@]}"; do
+    # For every service check if it exist the endfunction in the a folder with the name of the
+    # service in the top level otherwise copy the template
+    #
     if [ -d "../${SERVICE}" ]; then
         echo "Directory ../${SERVICE} exists."
         cp -r ../${SERVICE} ./tmp/

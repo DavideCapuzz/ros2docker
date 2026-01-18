@@ -59,7 +59,6 @@ touch $HOME/.Xauthority
 chown $USER:$USER $HOME/.Xauthority
 
 # Update noVNC password in UI
-#sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/lib/novnc/app/ui.js
 if [ -f /usr/share/novnc/app/ui.js ]; then
     sed -i "s/password = WebUtil.getConfigVar('password');/password = '$VNC_PASSWORD'/" /usr/share/novnc/app/ui.js
 elif [ -f /usr/lib/novnc/app/ui.js ]; then
@@ -73,7 +72,6 @@ unset DBUS_SESSION_BUS_ADDRESS
 EOF
 chown $USER:$USER $XSTARTUP_PATH
 chmod 755 $XSTARTUP_PATH
-#EOF
 
 # Supervisor
 # Create Supervisor configuration

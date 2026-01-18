@@ -21,22 +21,6 @@ echo "=========================================="
 install_core_packages() {
     echo ">>> Installing Core ROS2 Packages..."
     apt-get update && apt-get install -y \
-        # Build tools
-        python3-colcon-common-extensions \
-        python3-colcon-clean \
-        python3-rosdep \
-        python3-vcstool \
-        ros-dev-tools \
-        # Common messages and interfaces
-        ros-${ROS_DISTRO}-can-msgs \
-        ros-${ROS_DISTRO}-bondcpp \
-        ros-${ROS_DISTRO}-rosbag2-storage-mcap \
-        # Development libraries
-        nlohmann-json3-dev \
-        libsuitesparse-dev \
-        python3-jinja2 \
-        python3-typeguard \
-        # Communication
         python3-path \
         ros-${ROS_DISTRO}-rviz2 \
         ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
@@ -48,15 +32,15 @@ install_core_packages() {
 # ============================================================================
 install_navigation_packages() {
     echo ">>> Installing Navigation Packages..."
+    # Navigation2 stack
+    # SLAM
     apt-get update && apt-get install -y \
-        # Navigation2 stack
         ros-${ROS_DISTRO}-navigation2 \
         ros-${ROS_DISTRO}-nav2-bringup \
         ros-${ROS_DISTRO}-nav2-map-server \
         ros-${ROS_DISTRO}-nav2-costmap-2d \
         ros-${ROS_DISTRO}-nav2-planner \
         ros-${ROS_DISTRO}-nav2-controller \
-        # SLAM
         ros-${ROS_DISTRO}-slam-toolbox \
         ros-${ROS_DISTRO}-cartographer \
         ros-${ROS_DISTRO}-cartographer-ros \
@@ -68,18 +52,18 @@ install_navigation_packages() {
 # ============================================================================
 install_control_packages() {
     echo ">>> Installing Control Packages..."
+    # ros2_control
+    # State and transforms
+    # Localization
     apt-get update && apt-get install -y \
-        # ros2_control
         ros-${ROS_DISTRO}-ros2-control \
         ros-${ROS_DISTRO}-ros2-controllers \
         ros-${ROS_DISTRO}-controller-manager \
         ros-${ROS_DISTRO}-control-msgs \
         ros-${ROS_DISTRO}-control-toolbox \
-        # State and transforms
         ros-${ROS_DISTRO}-joint-state-publisher \
         ros-${ROS_DISTRO}-joint-state-publisher-gui \
         ros-${ROS_DISTRO}-robot-state-publisher \
-        # Localization
         ros-${ROS_DISTRO}-robot-localization \
         && rm -rf /var/lib/apt/lists/*
 }
@@ -89,17 +73,18 @@ install_control_packages() {
 # ============================================================================
 install_perception_packages() {
     echo ">>> Installing Perception Packages..."
+    # Vision
+    # Point clouds
+    # Depth
+
     apt-get update && apt-get install -y \
-        # Vision
         ros-${ROS_DISTRO}-vision-opencv \
         ros-${ROS_DISTRO}-cv-bridge \
         ros-${ROS_DISTRO}-image-transport \
         ros-${ROS_DISTRO}-compressed-image-transport \
-        # Point clouds
         ros-${ROS_DISTRO}-perception-pcl \
         ros-${ROS_DISTRO}-pcl-conversions \
         ros-${ROS_DISTRO}-pcl-ros \
-        # Depth
         ros-${ROS_DISTRO}-depth-image-proc \
         ros-${ROS_DISTRO}-image-pipeline \
         && rm -rf /var/lib/apt/lists/*
@@ -208,6 +193,7 @@ case "${PROFILE}" in
     custom)
         install_core_packages
         install_custom_libraries
+        install_gazebo_bridge_libraries
         ;;
 
     gazebo)

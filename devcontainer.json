@@ -5,8 +5,6 @@
   "service": "robot1",
   "workspaceFolder": "/home/ubuntu/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder}/src,target=/home/ubuntu/ros2_ws/src,type=bind",
-//  "remoteUser": "ubuntu",
-
   "customizations": {
     "jetbrains": {
       "backend": "CLion",
@@ -31,16 +29,6 @@
       ]
     }
   },
-
-//  "forwardPorts": [6080, 5901],
-//
-//  "portsAttributes": {
-//    "6080": { "label": "noVNC Web", "protocol": "http" }
-//  },
-
   "shutdownAction": "stopCompose",
-
   "overrideCommand": false,
-
-//  "runServices": ["robot1","gazebo"],
 }
