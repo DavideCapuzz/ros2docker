@@ -244,9 +244,3 @@ env=ROBOT_ID:1;MAX_SPEED:2.5;DEBUG:true
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
----
-
-
-- Blog: [Your blog link]
-- Issues: [GitHub Issues link]
-- Documentation: [Additional docs link]
