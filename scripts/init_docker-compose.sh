@@ -11,42 +11,82 @@ declare -a ROBOTS
 declare -A NETWORKS
 declare -A VOLUMES
 
-# Simple INI parser
+# Enhanced INI parser - FIXED to handle files without trailing newline
 parse_ini() {
     local section=""
-    while IFS='=' read -r key value; do
-        # Skip comments and empty lines
-        [[ "$key" =~ ^[[:space:]]*# ]] && continue
-        [[ -z "$key" ]] && continue
+    local line_num=0
 
-        # Trim whitespace
-        key=$(echo "$key" | xargs)
-        value=$(echo "$value" | xargs)
+    # Read line by line, handling files without trailing newlines
+    while IFS= read -r raw_line || [ -n "$raw_line" ]; do
+        line_num=$((line_num + 1))
+
+        # Show raw line for debugging
+        echo "Line $line_num (raw): >>>$raw_line<<<"
+
+        # Skip comments
+        if [[ "$raw_line" =~ ^[[:space:]]*# ]]; then
+            echo "  -> Skipped (comment)"
+            continue
+        fi
+
+        # Skip empty lines
+        if [[ "$raw_line" =~ ^[[:space:]]*$ ]]; then
+            echo "  -> Skipped (empty)"
+            continue
+        fi
+
+        # Remove leading/trailing whitespace
+        local line="${raw_line#"${raw_line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+
+        echo "  -> Trimmed: >>>$line<<<"
 
         # Check for section header [name]
-        if [[ "$key" =~ ^\[(.+)\]$ ]]; then
+        if [[ "$line" =~ ^\[([^]]+)\]$ ]]; then
             section="${BASH_REMATCH[1]}"
             ROBOTS+=("$section")
-        else
-            # Store as section_key=value
+            echo "  -> Found section: [$section]"
+            continue
+        fi
+
+        # Check for key=value
+        if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+
+            # Trim key and value
+            key="${key#"${key%%[![:space:]]*}"}"
+            key="${key%"${key##*[![:space:]]}"}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+
+            # Store
             CONFIG["${section}_${key}"]="$value"
+            echo "  -> Stored: ${section}_${key} = >>>$value<<<"
+        else
+            echo "  -> WARNING: Line doesn't match pattern"
         fi
     done < "$CONFIG_FILE"
 }
 
+echo "========================================"
 echo "Parsing $CONFIG_FILE"
+echo "========================================"
 parse_ini
+echo ""
 echo "Found ${#ROBOTS[@]} robot(s): ${ROBOTS[*]}"
+echo ""
 
 echo "--- Full Configuration ---"
 for key in "${!CONFIG[@]}"; do
-    echo "Key: $key | Value: ${CONFIG[$key]}"
+    echo "$key = ${CONFIG[$key]}"
 done
 echo "--------------------------"
+echo ""
 
 display_counter=0
-# Start output
 
+# Start output
 cat > "$OUTPUT_FILE" <<'EOF'
 # Auto-generated docker-compose.yml
 # Generated from setup.ini
@@ -67,15 +107,17 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
     ENDFUNCTION=${CONFIG[${ROBOT_NAME}_endfunction]}
     ENV_VARS=${CONFIG[${ROBOT_NAME}_env]}
 
-    echo "=== Processing: $ROBOT_NAME ==="
+    echo "==================================="
+    echo "Processing: $ROBOT_NAME"
+    echo "==================================="
     echo "DISPLAY: $DISPLAY"
     echo "NETWORK: $NETWORK"
     echo "PROFILE: $PROFILE"
     echo "DOMAIN: $DOMAIN"
     echo "VOLS: $VOLS"
     echo "ENDFUNCTION: $ENDFUNCTION"
-    echo "ENV_VARS: '$ENV_VARS'"  # ← Added quotes to see if empty
-    echo "================================"
+    echo "ENV_VARS: >>>$ENV_VARS<<<"
+    echo ""
 
     # Calculate ports
     DISPLAY_NUM=${DISPLAY}
@@ -87,7 +129,8 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
     if [ -n "$VOLS" ]; then
         IFS=',' read -ra VOL_ARRAY <<< "$VOLS"
         for vol in "${VOL_ARRAY[@]}"; do
-            vol=$(echo "$vol" | xargs)
+            vol="${vol#"${vol%%[![:space:]]*}"}"
+            vol="${vol%"${vol##*[![:space:]]}"}"
             [ -n "$vol" ] && VOLUMES["${ROBOT_NAME}_${vol}"]="$vol"
         done
     fi
@@ -98,21 +141,19 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
 
     if [ -n "$ENDFUNCTION" ]; then
         SRC="../$ENDFUNCTION"
-
         if [ -f "$SRC" ]; then
             cp "$SRC" "$TARGET_DIR/endfunction.sh"
-            echo "✓ Copied endfunction for $ROBOT_NAME -> $TARGET_DIR/endfunction.sh"
+            echo "✓ Copied endfunction: $SRC -> $TARGET_DIR/endfunction.sh"
         else
-            echo "⚠ Endfunction not found: $SRC"
-            echo "  Using template instead."
+            echo "⚠ Endfunction not found: $SRC (using template)"
             cp template/endfunction.sh "$TARGET_DIR/endfunction.sh"
         fi
     else
-        echo "ℹ No endfunction specified for $ROBOT_NAME, using template."
+        echo "ℹ No endfunction specified (using template)"
         cp template/endfunction.sh "$TARGET_DIR/endfunction.sh"
     fi
 
-    echo "  Generating: $ROBOT_NAME"
+    echo "Generating docker-compose entry for $ROBOT_NAME..."
 
     cat >> "$OUTPUT_FILE" <<EOF
 
@@ -144,36 +185,46 @@ for ROBOT_NAME in "${ROBOTS[@]}"; do
       ROBOT_NAME: $ROBOT_NAME
 EOF
 
+    # Process custom environment variables
     if [ -n "$ENV_VARS" ]; then
-        echo "DEBUG: Processing ENV_VARS for $ROBOT_NAME: '$ENV_VARS'"
+        echo "Processing custom environment variables..."
+        echo "ENV_VARS content: >>>$ENV_VARS<<<"
+
         IFS=';' read -ra ENV_ARRAY <<< "$ENV_VARS"
-        echo "DEBUG: Split into ${#ENV_ARRAY[@]} items: ${ENV_ARRAY[*]}"
+        echo "Split into ${#ENV_ARRAY[@]} parts"
 
         for env_kv in "${ENV_ARRAY[@]}"; do
-            env_kv=$(echo "$env_kv" | xargs)
-            echo "DEBUG: Processing env pair: '$env_kv'"
+            # Trim whitespace
+            env_kv="${env_kv#"${env_kv%%[![:space:]]*}"}"
+            env_kv="${env_kv%"${env_kv##*[![:space:]]}"}"
 
-            # Split on FIRST ':' only (KEY:VALUE)
+            echo "  Processing: >>>$env_kv<<<"
+
+            # Split on first colon
             if [[ "$env_kv" =~ ^([^:]+):(.*)$ ]]; then
                 KEY="${BASH_REMATCH[1]}"
                 VALUE="${BASH_REMATCH[2]}"
 
-                echo "DEBUG:   KEY='$KEY' VALUE='$VALUE'"
+                # Trim key and value
+                KEY="${KEY#"${KEY%%[![:space:]]*}"}"
+                KEY="${KEY%"${KEY##*[![:space:]]}"}"
+                VALUE="${VALUE#"${VALUE%%[![:space:]]*}"}"
+                VALUE="${VALUE%"${VALUE##*[![:space:]]}"}"
 
-                if [ -n "$KEY" ] && [ -n "$VALUE" ]; then
+                if [ -n "$KEY" ]; then
                     echo "      $KEY: \"$VALUE\"" >> "$OUTPUT_FILE"
-                    echo "DEBUG:   ✓ Added to file"
-                else
-                    echo "DEBUG:   ✗ Skipped (empty key or value)"
+                    echo "    ✓ Added: $KEY=$VALUE"
                 fi
             else
-                echo "DEBUG:   ✗ Invalid format (no = found)"
+                echo "    ✗ Invalid format (expected KEY:VALUE)"
             fi
         done
     else
-        echo "DEBUG: No ENV_VARS for $ROBOT_NAME"
+        echo "No custom environment variables"
     fi
+    echo ""
 
+    # Add networks
     if [ -n "$NETWORK" ]; then
         cat >> "$OUTPUT_FILE" <<EOF
 
@@ -182,6 +233,7 @@ EOF
 EOF
     fi
 
+    # Add volumes
     cat >> "$OUTPUT_FILE" <<EOF
 
     volumes:
@@ -192,13 +244,15 @@ EOF
     if [ -n "$VOLS" ]; then
         IFS=',' read -ra VOL_ARRAY <<< "$VOLS"
         for vol in "${VOL_ARRAY[@]}"; do
-            vol=$(echo "$vol" | xargs)
+            vol="${vol#"${vol%%[![:space:]]*}"}"
+            vol="${vol%"${vol##*[![:space:]]}"}"
             if [ -n "$vol" ]; then
                 echo "      - ${ROBOT_NAME}_${vol}:/home/ubuntu/ros2_ws/${vol}" >> "$OUTPUT_FILE"
             fi
         done
     fi
 
+    # Add ports
     cat >> "$OUTPUT_FILE" <<EOF
 
     ports:
@@ -208,7 +262,7 @@ EOF
 
 done
 
-# Add volumes
+# Add volumes section
 if [ ${#VOLUMES[@]} -gt 0 ]; then
     echo "" >> "$OUTPUT_FILE"
     echo "volumes:" >> "$OUTPUT_FILE"
@@ -217,7 +271,7 @@ if [ ${#VOLUMES[@]} -gt 0 ]; then
     done
 fi
 
-# Add networks
+# Add networks section
 if [ ${#NETWORKS[@]} -gt 0 ]; then
     echo "" >> "$OUTPUT_FILE"
     echo "networks:" >> "$OUTPUT_FILE"
@@ -228,4 +282,9 @@ if [ ${#NETWORKS[@]} -gt 0 ]; then
 fi
 
 echo ""
+echo "========================================="
 echo "✓ Generated $OUTPUT_FILE"
+echo "========================================="
+echo ""
+echo "Verify environment variables:"
+echo "  grep -A 25 'environment:' $OUTPUT_FILE | grep -A 15 robot1"
