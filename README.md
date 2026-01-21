@@ -4,7 +4,7 @@ ROS2 and Docker are two powerful tools for modern programming that generate stro
 
 This flexible template allows you to create multiple different containers with different images and packages installed inside. Every robot is unique, which is why ros2docker provides multiple customization options that let you install your packages independently from the robot configuration without modifying the ros2docker repository itself.
 
-You can find additional information on [my blog](#).
+You can find additional information on [my blog](https://davidecapuzz.github.io/docker/2025/12/06/Robot-Development-with-Docker.html).
 
 > **Note:** The setup is currently tested using Linux with CLion/VSCode.
 
@@ -243,4 +243,15 @@ env=ROBOT_ID:1;MAX_SPEED:2.5;DEBUG:true
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## Usefull links
+
+- [Docker Official website](https://docs.docker.com/engine/install/ubuntu)
+- [Best Ros2 Docker youtube series  by Articulated Robotics](https://www.youtube.com/watch?v=dihfA7Ol6Mw&list=PLunhqkrRNRhaqt0UfFxxC_oj7jscss2qe&index=6)
+- [automaticaddison ROS2 docker tutorial](https://automaticaddison.com/the-complete-guide-to-docker-for-ros-2-jazzy-projects/)
+- [Guide for ROS and Docker](https://blog.robotair.io/the-complete-beginners-guide-to-using-docker-for-ros-2-deployment-2025-edition-0f259ca8b378)
+- [Ros2 and gui setup](https://medium.com/ai-casts-blog/2-quick-ways-to-use-gui-with-ros-ros-2-docker-images-44c24057e147)
+- [Uinversity of Ottawa docker setup](https://github.com/wail-uottawa/docker-ros2-elg5228)
+- [My GitHub Repository](https://github.com/DavideCapuzz/ros2docker)
+
 
